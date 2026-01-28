@@ -41,8 +41,8 @@ Areas we use: `server`, `units`, `device`, `db`, `free`, `docs`, `integration`.
 2. If you see **Create a branch**, click it.
 3. GitHub creates the branch and links it to the Issue.
 
-### Option B: Create a branch in Git Bash (common)
-Open **Git Bash** in your repo folder.
+### Option B: Create a branch in a terminal (common)
+Open a terminal (Git Bash or PowerShell) in your repo folder.
 
 1. Make sure `main` is up to date:
 ```bash
@@ -206,11 +206,28 @@ git commit -m "Resolve merge conflicts"
 git push
 ```
 
+### “I created a branch on GitHub but can’t see it locally”
+Branches created on GitHub are **remote-only** until you fetch and check them out.
+
+1. Fetch all remotes:
+```bash
+git fetch --all
+```
+
+2. Create a local tracking branch:
+```bash
+git switch <branch>
+```
+(or `git checkout <branch>`)
+
+Tip: `git branch -r` lists remote branches. `git branch` shows only local branches.
+
 ---
 
 ## PR checklist (before marking Ready for review)
 - [ ] PR is linked to an Issue (`Closes #...` or `Relates to #...`)
 - [ ] Changes are focused (not 10 unrelated things)
+- [ ] Only relevant files are changed (check the high-level structure in README to avoid touching other areas by mistake)
 - [ ] Build/run works locally (if applicable)
 - [ ] No unfinished TODOs (unless intentional and tracked)
 - [ ] Project status updated (In progress / In review / Done)
