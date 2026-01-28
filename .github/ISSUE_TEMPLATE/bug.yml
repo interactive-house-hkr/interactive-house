@@ -1,0 +1,22 @@
+name: Bug
+description: Something is not working
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    attributes:
+      label: What is wrong?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+    validations:
+      required: false
