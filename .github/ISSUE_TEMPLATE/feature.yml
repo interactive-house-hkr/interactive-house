@@ -1,0 +1,25 @@
+name: Feature
+description: New functionality or enhancement
+title: "[Feature] "
+labels: ["feature"]
+body:
+  - type: textarea
+    attributes:
+      label: Summary
+      description: What should be added?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Why
+      description: Why is this needed? (optional)
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Requirement / Use case
+      description: Optional reference
+    validations:
+      required: false
