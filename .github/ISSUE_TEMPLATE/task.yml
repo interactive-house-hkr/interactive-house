@@ -1,0 +1,10 @@
+name: Task
+description: Implementation, documentation, refactoring, test, or other work
+title: "[Task] "
+labels: ["task"]
+body:
+  - type: textarea
+    attributes:
+      label: Task description
+    validations:
+      required: true
