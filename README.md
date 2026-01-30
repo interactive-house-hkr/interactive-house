@@ -11,7 +11,9 @@ Planned high-level layout (may change):
 - `services/` — Server/API + DB assets (migrations, seeds, etc.)
 - `devices/` — Device simulation(s)
 - `shared/` — Shared contracts/utilities (API DTOs, schemas, etc.)
-- `docs/` — Project documentation and artifacts
+- `docs/` — Project documentation
+
+The Free group can create a separate folder depending on what we choose to build in the “free” part (e.g., voice-to-action, more simulated devices, etc.). If it fits better, they can also place their work inside an existing folder (e.g., `apps/`).
 
 ## Project board
 We use **GitHub Projects** for planning and tracking:
