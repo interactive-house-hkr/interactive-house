@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 import logging
+import os
 
-# Basic logging setup
+LOG_LEVEL_STR = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_LEVEL = getattr(logging, LOG_LEVEL_STR, logging.INFO)
+
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=LOG_LEVEL,
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 logger = logging.getLogger(__name__)
@@ -19,3 +22,4 @@ def startup_event():
 def root():
     logger.info("GET / called")
     return {"status": "ok"}
+
