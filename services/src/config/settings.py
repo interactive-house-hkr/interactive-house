@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Firebase configuration
     firebase_project_id: str
-    firebase_service_account_path: str
+    firebase_service_account: str
     firebase_database_url: str
 
     model_config = SettingsConfigDict(

@@ -1,7 +1,15 @@
 .vscode
-.venv/
 .env
-services/src/config/interactive-house-d3e5c-firebase-adminsdk-fbsvc-594de405b5.json
+
+# Python venvs
+.venv/
+venv/
+
 __pycache__/
 *.py[cod]
+
+# temp
 *tmpclaude*
+
+# secrets / configs
+services/src/config/interactive-house-d3e5c-firebase-adminsdk-fbsvc-594de405b5.json
