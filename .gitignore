@@ -3,4 +3,5 @@
 services/src/config/interactive-house-d3e5c-firebase-adminsdk-fbsvc-594de405b5.json
 __pycache__/
 *.py[cod]
-*tmpclaude*.venv/
+*tmpclaude*
+.venv/
