@@ -1,4 +1,4 @@
 class DeviceState:
-  def __init__(self, device_id, values):
-    self.device_id = device_id
+  def __init__(self, deviceUuid, values):
+    self.deviceUuid = deviceUuid
     self.values = values
