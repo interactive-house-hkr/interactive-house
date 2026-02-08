@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends
 from services.src.services.auth_service import optional_user
 from services.src.utils.logger import get_logger
+from pydantic import BaseModel, Field
+from services.src.services import device_service
+
 
 router = APIRouter(
     prefix="/devices",
@@ -9,21 +12,30 @@ router = APIRouter(
 
 logger = get_logger(__name__)
 
-# -------------------------
+
+class RegisterDeviceBody(BaseModel):
+    device_type: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
+
+
 # Devices
-# -------------------------
+#
 
 @router.get("")
 def list_devices(type: str | None = None, user=Depends(optional_user)):
     logger.info("GET /devices")
-    # TODO: return device_service.list_devices(user=user, device_type=type)
-    return {"todo": "list_devices service call"}
+    return device_service.list_devices(device_type=type)
+
 
 @router.post("/{deviceUuid}")
-def register_device(deviceUuid: str, user=Depends(optional_user)):
+def register_device(deviceUuid: str, payload: RegisterDeviceBody, user=Depends(optional_user)):
     logger.info(f"POST /devices/{deviceUuid}")
-    # TODO: return device_service.register_device(deviceUuid, payload, user)
-    return {"todo": "register_device service call", "deviceUuid": deviceUuid}
+    return device_service.register_device(
+        device_uuid=deviceUuid,
+        device_type=payload.device_type,
+        capabilities=payload.capabilities,
+    )
+
 
 @router.get("/{deviceUuid}")
 def get_device(deviceUuid: str, user=Depends(optional_user)):
@@ -43,9 +55,7 @@ def delete_device(deviceUuid: str, user=Depends(optional_user)):
     # TODO: return device_service.delete_device(deviceUuid, user)
     return {"todo": "delete_device service call", "deviceUuid": deviceUuid}
 
-# -------------------------
 # Commands
-# -------------------------
 
 @router.post("/{deviceUuid}/commands")
 def post_command(deviceUuid: str, user=Depends(optional_user)):
@@ -53,9 +63,7 @@ def post_command(deviceUuid: str, user=Depends(optional_user)):
     # TODO: return command_service.queue_command(deviceUuid, payload, user)
     return {"todo": "queue_command service call", "deviceUuid": deviceUuid}
 
-# -------------------------
 # Health
-# -------------------------
 
 @router.post("/{deviceUuid}/heartbeat")
 def heartbeat(deviceUuid: str):
@@ -63,9 +71,7 @@ def heartbeat(deviceUuid: str):
     # TODO: return device_service.heartbeat(deviceUuid)
     return {"todo": "heartbeat service call", "deviceUuid": deviceUuid}
 
-# -------------------------
 # Events (placeholder)
-# -------------------------
 
 @router.get("/events")
 def events():

@@ -1,4 +1,6 @@
+from fastapi import Query
+from typing import Optional
 
-
-def optional_user(func):
-    return None
+def optional_user(action: Optional[str] = Query(default=None, alias="func")):
+    # action innehåller värdet från ?func=...
+    ...
