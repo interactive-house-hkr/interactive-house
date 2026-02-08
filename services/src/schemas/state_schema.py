@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 class StateSchema(BaseModel):
-  device_id: str
+  deviceUuid: str
   values: dict
