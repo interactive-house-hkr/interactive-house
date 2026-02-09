@@ -5,6 +5,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 import os
 import time
+from services.src.routes.device_routes import router as device_router
+from services.src.routes.state_routes import router as state_router
+from services.src.utils.logger import get_logger
+
 
 # Read log level from env (default INFO)
 LOG_LEVEL_STR = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -18,6 +22,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Interactive House Server")
+
+# Include routers
+app.include_router(device_router, prefix="/api/v1")
+app.include_router(state_router, prefix="/api/v1")
+
 
 @app.on_event("startup")
 def startup_event():
