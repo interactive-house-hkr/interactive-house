@@ -21,12 +21,18 @@ src/
 
 1. Create and activate a virtual environment
 2. Install dependencies:
-   pip install -r requirements.txt
-3. Create a .env file based on .env.example
+    ```
+    pip install -r requirements.txt
+    ```
+3. Download the Firebase service account JSON and place it in src/config/
+4. Create a .env file based on .env.example
 
 ## Running the Server
 
-uvicorn src.main:app --reloadÂ¨
+From the repo root:
+```
+uvicorn services.src.main:app --reload
+```
 
 ## API Documentation
 
