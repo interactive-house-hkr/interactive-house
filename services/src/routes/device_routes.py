@@ -22,54 +22,54 @@ def list_devices(type: str | None = None, user=Depends(optional_user)):
     return device_service.list_devices(device_type=type)
 
 
-@router.post("/{deviceUuid}")
-def register_device(deviceUuid: str, payload: RegisterDeviceBody, user=Depends(optional_user)):
-    logger.info(f"POST /devices/{deviceUuid}")
+@router.post("/{deviceuuid}")
+def register_device(deviceuuid: str, payload: RegisterDeviceBody, user=Depends(optional_user)):
+    logger.info(f"POST /devices/{deviceuuid}")
     return device_service.register_device(
-        device_uuid=deviceUuid,
+        device_uuid=deviceuuid,
         device_type=payload.device_type,
         capabilities=payload.capabilities,
     )
 
 
-@router.get("/{deviceUuid}")
-def get_device(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"GET /devices/{deviceUuid}")
+@router.get("/{deviceuuid}")
+def get_device(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"GET /devices/{deviceuuid}")
     # TODO: return device_service.get_device(deviceUuid, user)
-    return {"todo": "get_device service call", "deviceUuid": deviceUuid}
+    return {"todo": "get_device service call", "deviceuuid": deviceuuid}
 
 
-@router.patch("/{deviceUuid}")
-def update_device(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"PATCH /devices/{deviceUuid}")
-    # TODO: return device_service.update_device(deviceUuid, payload, user)
-    return {"todo": "update_device service call", "deviceUuid": deviceUuid}
+@router.patch("/{deviceuuid}")
+def update_device(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"PATCH /devices/{deviceuuid}")
+    # TODO: return device_service.update_device(deviceuuid, payload, user)
+    return {"todo": "update_device service call", "deviceuuid": deviceuuid}
 
 
-@router.delete("/{deviceUuid}")
-def delete_device(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"DELETE /devices/{deviceUuid}")
-    # TODO: return device_service.delete_device(deviceUuid, user)
-    return {"todo": "delete_device service call", "deviceUuid": deviceUuid}
+@router.delete("/{deviceuuid}")
+def delete_device(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"DELETE /devices/{deviceuuid}")
+    # TODO: return device_service.delete_device(deviceuuid, user)
+    return {"todo": "delete_device service call", "deviceUuid": deviceuuid}
 
 # -------------------------
 # Commands
 # -------------------------
 
-@router.post("/{deviceUuid}/commands")
-def post_command(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"POST /devices/{deviceUuid}/commands")
-    # TODO: return command_service.queue_command(deviceUuid, payload, user)
-    return {"todo": "queue_command service call", "deviceUuid": deviceUuid}
+@router.post("/{deviceuuid}/commands")
+def post_command(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"POST /devices/{deviceuuid}/commands")
+    # TODO: return command_service.queue_command(deviceuuid, payload, user)
+    return {"todo": "queue_command service call", "deviceuuid": deviceuuid}
 
 # -------------------------
 # Health
 # -------------------------
 
-@router.post("/{deviceUuid}/heartbeat")
-def heartbeat(deviceUuid: str):
-    logger.info(f"POST /devices/{deviceUuid}/heartbeat")
-    return device_service.heartbeat(deviceUuid)
+@router.post("/{deviceuuid}/heartbeat")
+def heartbeat(deviceuuid: str):
+    logger.info(f"POST /devices/{deviceuuid}/heartbeat")
+    return device_service.heartbeat(deviceuuid)
 
 # -------------------------
 # Events (placeholder)
