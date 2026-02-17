@@ -1,4 +1,4 @@
-from models.state import DeviceState
+from services.src.models.state import DeviceState
 
 # Returns the current state values
 def get_state(state: DeviceState) -> dict:

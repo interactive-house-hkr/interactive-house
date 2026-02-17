@@ -12,7 +12,7 @@ async def logging_middleware(request: Request, call_next):
     duration_ms = (time.time() - start_time) * 1000
 
     logger.info(
-        f"{request.method} {request.url.path} "
+        f"{request.method} {request.url} "
         f"-> {response.status_code} "
         f"({duration_ms:.2f} ms)"
     )
