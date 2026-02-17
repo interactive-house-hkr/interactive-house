@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class MessageSchema(BaseModel):
-  deviceUuid: str
+  device_uuid: str
   command: str
   payload: dict | None = None # Extra info, such as Brightness. Not mandatory.
 
