@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends
 from services.src.services.auth_service import optional_user
 from services.src.utils.logger import get_logger
+from services.src.services import device_service
+from services.src.schemas.device_schema import RegisterDeviceBody
+
 
 router = APIRouter(
     prefix="/devices",
-    tags=["devices"]
+    tags=["devices"],
 )
 
 logger = get_logger(__name__)
@@ -16,52 +19,57 @@ logger = get_logger(__name__)
 @router.get("")
 def list_devices(type: str | None = None, user=Depends(optional_user)):
     logger.info("GET /devices")
-    # TODO: return device_service.list_devices(user=user, device_type=type)
-    return {"todo": "list_devices service call"}
+    return device_service.list_devices(device_type=type)
 
-@router.post("/{deviceUuid}")
-def register_device(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"POST /devices/{deviceUuid}")
-    # TODO: return device_service.register_device(deviceUuid, payload, user)
-    return {"todo": "register_device service call", "deviceUuid": deviceUuid}
 
-@router.get("/{deviceUuid}")
-def get_device(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"GET /devices/{deviceUuid}")
+@router.post("/{deviceuuid}")
+def register_device(deviceuuid: str, payload: RegisterDeviceBody, user=Depends(optional_user)):
+    logger.info(f"POST /devices/{deviceuuid}")
+    return device_service.register_device(
+        device_uuid=deviceuuid,
+        device_type=payload.device_type,
+        capabilities=payload.capabilities,
+    )
+
+
+@router.get("/{deviceuuid}")
+def get_device(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"GET /devices/{deviceuuid}")
     # TODO: return device_service.get_device(deviceUuid, user)
-    return {"todo": "get_device service call", "deviceUuid": deviceUuid}
+    return {"todo": "get_device service call", "deviceuuid": deviceuuid}
 
-@router.patch("/{deviceUuid}")
-def update_device(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"PATCH /devices/{deviceUuid}")
-    # TODO: return device_service.update_device(deviceUuid, payload, user)
-    return {"todo": "update_device service call", "deviceUuid": deviceUuid}
 
-@router.delete("/{deviceUuid}")
-def delete_device(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"DELETE /devices/{deviceUuid}")
-    # TODO: return device_service.delete_device(deviceUuid, user)
-    return {"todo": "delete_device service call", "deviceUuid": deviceUuid}
+@router.patch("/{deviceuuid}")
+def update_device(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"PATCH /devices/{deviceuuid}")
+    # TODO: return device_service.update_device(deviceuuid, payload, user)
+    return {"todo": "update_device service call", "deviceuuid": deviceuuid}
+
+
+@router.delete("/{deviceuuid}")
+def delete_device(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"DELETE /devices/{deviceuuid}")
+    # TODO: return device_service.delete_device(deviceuuid, user)
+    return {"todo": "delete_device service call", "deviceUuid": deviceuuid}
 
 # -------------------------
 # Commands
 # -------------------------
 
-@router.post("/{deviceUuid}/commands")
-def post_command(deviceUuid: str, user=Depends(optional_user)):
-    logger.info(f"POST /devices/{deviceUuid}/commands")
-    # TODO: return command_service.queue_command(deviceUuid, payload, user)
-    return {"todo": "queue_command service call", "deviceUuid": deviceUuid}
+@router.post("/{deviceuuid}/commands")
+def post_command(deviceuuid: str, user=Depends(optional_user)):
+    logger.info(f"POST /devices/{deviceuuid}/commands")
+    # TODO: return command_service.queue_command(deviceuuid, payload, user)
+    return {"todo": "queue_command service call", "deviceuuid": deviceuuid}
 
 # -------------------------
 # Health
 # -------------------------
 
-@router.post("/{deviceUuid}/heartbeat")
-def heartbeat(deviceUuid: str):
-    logger.info(f"POST /devices/{deviceUuid}/heartbeat")
-    # TODO: return device_service.heartbeat(deviceUuid)
-    return {"todo": "heartbeat service call", "deviceUuid": deviceUuid}
+@router.post("/{deviceuuid}/heartbeat")
+def heartbeat(deviceuuid: str):
+    logger.info(f"POST /devices/{deviceuuid}/heartbeat")
+    return device_service.heartbeat(deviceuuid)
 
 # -------------------------
 # Events (placeholder)
@@ -72,3 +80,4 @@ def events():
     logger.info("GET /devices/events")
     # TODO: return event_service.subscribe()
     return {"todo": "events service call"}
+
