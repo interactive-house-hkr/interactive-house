@@ -1,0 +1,41 @@
+{
+  "smarthouse": {
+    "lights": false,
+    "door": "closed",
+    "window": "closed",
+    "fan_speed": 0,
+    "doorbell": false,
+    "temperature": 0,
+    "modules": {
+      "arduino": {
+        "connected": false,
+        "last_seen": ""
+      },
+      "lights": {
+        "state": "unknown",
+        "last_updated": ""
+      },
+      "door": {
+        "state": "unknown",
+        "last_updated": ""
+      },
+      "window": {
+        "state": "unknown",
+        "last_updated": ""
+      },
+      "fan": {
+        "state": "unknown",
+        "speed": 0,
+        "last_updated": ""
+      },
+      "doorbell": {
+        "state": "unknown",
+        "last_updated": ""
+      },
+      "temperature": {
+        "celsius": 0,
+        "last_updated": ""
+      }
+    }
+  }
+}

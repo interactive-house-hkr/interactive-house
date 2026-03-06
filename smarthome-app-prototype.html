@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart House</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2330;
+    --accent: #e8a020;
+    --accent-dim: rgba(232, 160, 32, 0.12);
+    --text: #d4d8e2;
+    --text-dim: #4a5068;
+    --on: #4ade80;
+    --on-dim: rgba(74, 222, 128, 0.1);
+    --off: #374151;
+    --danger: #f87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,160,32,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,160,32,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 48px;
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .status-bar {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .status-bar + .status-bar {
+    margin-top: 6px;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.3s;
+  }
+
+  .status-dot.connected { background: var(--on); box-shadow: 0 0 8px var(--on); }
+  .status-dot.error { background: var(--danger); }
+
+  /* Firebase config panel */
+  .config-panel {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .config-panel h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .input-group label {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .input-group input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .input-group input:focus {
+    border-color: var(--accent);
+  }
+
+  .connect-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .connect-btn:hover { opacity: 0.85; }
+
+  /* Controls */
+  .controls {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .control-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.3s;
+  }
+
+  .control-card.active {
+    border-color: rgba(232, 160, 32, 0.3);
+    background: linear-gradient(135deg, var(--surface), rgba(232,160,32,0.04));
+  }
+
+  .control-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .control-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .control-state {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+
+  .control-state.on { color: var(--on); }
+
+  .control-icon {
+    font-size: 28px;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+  }
+
+  .control-card.active .control-icon { opacity: 1; }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    width: 56px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { display: none; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--off);
+    border-radius: 28px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .toggle input:checked + .toggle-track {
+    background: var(--accent);
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+
+  .toggle input:checked ~ .toggle-thumb {
+    transform: translateX(28px);
+  }
+
+  /* Door button */
+  .door-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .door-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .door-btn.open {
+    background: var(--on-dim);
+    border-color: var(--on);
+    color: var(--on);
+  }
+
+  /* Event log */
+  .log-panel {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 16px;
+  }
+
+  .log-panel h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  .log-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .log-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    animation: fadeIn 0.3s ease;
+  }
+
+  .log-time {
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .disabled-overlay {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* Fan speed slider */
+  .slider-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    width: 120px;
+  }
+
+  .fan-speed-label {
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--off);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+  }
+
+  input[type="range"]:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="label">Control Panel</div>
+  <h1>Smart <span>House</span></h1>
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Not connected to Firebase</span>
+  </div>
+  <div class="status-bar">
+    <div class="status-dot" id="arduinoDot"></div>
+    <span id="arduinoText">Arduino: unknown</span>
+  </div>
+</header>
+
+<!-- Firebase Config -->
+<div class="config-panel">
+  <h2>// Firebase Config</h2>
+  <div class="input-group">
+    <label>Database URL</label>
+    <input type="text" id="dbUrl" placeholder="https://your-project.firebaseio.com" />
+  </div>
+  <button class="connect-btn" onclick="connectFirebase()">Connect</button>
+</div>
+
+<!-- Controls -->
+<div class="controls disabled-overlay" id="controls">
+
+  <div class="control-card" id="lightCard">
+    <div class="control-info">
+      <div class="control-name">Lights</div>
+      <div class="control-state" id="lightState">OFF</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="control-icon">💡</div>
+      <label class="toggle">
+        <input type="checkbox" id="lightToggle" onchange="toggleLight(this.checked)">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="control-card" id="doorCard">
+    <div class="control-info">
+      <div class="control-name">Front Door</div>
+      <div class="control-state" id="doorState">CLOSED</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="control-icon">🚪</div>
+      <button class="door-btn" id="doorBtn" onclick="toggleDoor()">OPEN</button>
+    </div>
+  </div>
+
+  <div class="control-card" id="windowCard">
+    <div class="control-info">
+      <div class="control-name">Window</div>
+      <div class="control-state" id="windowState">CLOSED</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="control-icon">🪟</div>
+      <button class="door-btn" id="windowBtn" onclick="toggleWindow()">OPEN</button>
+    </div>
+  </div>
+
+  <div class="control-card" id="fanCard">
+    <div class="control-info">
+      <div class="control-name">Fan</div>
+      <div class="control-state" id="fanState">OFF</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="control-icon">🌀</div>
+      <div class="slider-container">
+        <span class="fan-speed-label" id="fanSpeedLabel">0%</span>
+        <input type="range" min="0" max="100" value="0" id="fanSlider" disabled oninput="setFanSpeed(this.value)">
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="fanToggle" onchange="toggleFan(this.checked)">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- Event Log -->
+<div class="log-panel">
+  <h2>// Event Log</h2>
+  <div class="log-entries" id="logEntries">
+    <div class="log-entry">
+      <span class="log-time">--:--:--</span>
+      <span>Waiting for connection...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  let dbUrl = '';
+  let isConnected = false;
+  let doorOpen = false;
+  let windowOpen = false;
+  let lightsOn = false;
+  let fanSpeed = 0;
+  let fanDebounce = null;
+  let pollInterval = null;
+
+  function connectFirebase() {
+    const input = document.getElementById('dbUrl').value.trim();
+    if (!input) return;
+    dbUrl = input.replace(/\/$/, '');
+
+    // Test connection
+    fetch(`${dbUrl}/smarthouse.json`)
+      .then(r => r.json())
+      .then(data => {
+        isConnected = true;
+        document.getElementById('statusDot').className = 'status-dot connected';
+        document.getElementById('statusText').textContent = 'Connected to Firebase';
+        document.getElementById('controls').classList.remove('disabled-overlay');
+        addLog('Connected to Firebase');
+
+        // Init if empty
+        if (!data) {
+          writeState('lights', false);
+          writeState('door', 'closed');
+          writeState('window', 'closed');
+          writeState('fan_speed', 0);
+        } else {
+          // Sync current state
+          if (data.lights !== undefined) updateLightUI(data.lights);
+          if (data.door !== undefined) updateDoorUI(data.door);
+          if (data.window !== undefined) updateWindowUI(data.window);
+          if (data.fan_speed !== undefined) updateFanUI(data.fan_speed);
+          if (data.modules?.arduino) updateArduinoStatus(data.modules.arduino);
+        }
+
+        // Start polling for changes (simulates real-time)
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(pollFirebase, 2000);
+      })
+      .catch(() => {
+        document.getElementById('statusDot').className = 'status-dot error';
+        document.getElementById('statusText').textContent = 'Connection failed — check URL';
+      });
+  }
+
+  function pollFirebase() {
+    fetch(`${dbUrl}/smarthouse.json`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data) return;
+        if (data.lights !== undefined && data.lights !== lightsOn) updateLightUI(data.lights);
+        if (data.door !== undefined) {
+          const isOpen = data.door === 'open';
+          if (isOpen !== doorOpen) updateDoorUI(data.door);
+        }
+        if (data.window !== undefined) {
+          const isOpen = data.window === 'open';
+          if (isOpen !== windowOpen) updateWindowUI(data.window);
+        }
+        if (data.fan_speed !== undefined && data.fan_speed !== fanSpeed) updateFanUI(data.fan_speed);
+        if (data.modules?.arduino) updateArduinoStatus(data.modules.arduino);
+        if (data.doorbell === true) {
+          addLog('🔔 Doorbell pressed!');
+          writeState('doorbell', false);
+        }
+      });
+  }
+
+  function writeState(key, value) {
+    fetch(`${dbUrl}/smarthouse/${key}.json`, {
+      method: 'PUT',
+      body: JSON.stringify(value)
+    });
+  }
+
+  function toggleLight(checked) {
+    lightsOn = checked;
+    writeState('lights', checked);
+    updateLightUI(checked);
+    addLog(checked ? '💡 Lights turned ON' : '💡 Lights turned OFF');
+  }
+
+  function toggleDoor() {
+    doorOpen = !doorOpen;
+    const val = doorOpen ? 'open' : 'closed';
+    writeState('door', val);
+    updateDoorUI(val);
+    addLog(doorOpen ? '🚪 Door opened' : '🚪 Door closed');
+  }
+
+  function toggleWindow() {
+    windowOpen = !windowOpen;
+    const val = windowOpen ? 'open' : 'closed';
+    writeState('window', val);
+    updateWindowUI(val);
+    addLog(windowOpen ? '🪟 Window opened' : '🪟 Window closed');
+  }
+
+  function updateLightUI(on) {
+    lightsOn = on;
+    document.getElementById('lightToggle').checked = on;
+    document.getElementById('lightState').textContent = on ? 'ON' : 'OFF';
+    document.getElementById('lightState').className = 'control-state' + (on ? ' on' : '');
+    document.getElementById('lightCard').className = 'control-card' + (on ? ' active' : '');
+  }
+
+  function toggleFan(checked) {
+    if (checked) {
+      let speed = parseInt(document.getElementById('fanSlider').value);
+      if (speed === 0) {
+        speed = 100;
+        document.getElementById('fanSlider').value = 100;
+      }
+      document.getElementById('fanSlider').disabled = false;
+      setFanSpeed(speed);
+    } else {
+      document.getElementById('fanSlider').disabled = true;
+      setFanSpeed(0);
+    }
+  }
+
+  function setFanSpeed(value) {
+    fanSpeed = parseInt(value);
+    document.getElementById('fanSpeedLabel').textContent = fanSpeed + '%';
+    document.getElementById('fanState').textContent = fanSpeed > 0 ? 'ON' : 'OFF';
+    document.getElementById('fanState').className = 'control-state' + (fanSpeed > 0 ? ' on' : '');
+    document.getElementById('fanCard').className = 'control-card' + (fanSpeed > 0 ? ' active' : '');
+    clearTimeout(fanDebounce);
+    fanDebounce = setTimeout(() => {
+      writeState('fan_speed', fanSpeed);
+      addLog(fanSpeed > 0 ? '🌀 Fan speed set to ' + fanSpeed + '%' : '🌀 Fan turned OFF');
+    }, 300);
+  }
+
+  function updateFanUI(speed) {
+    fanSpeed = speed;
+    document.getElementById('fanSlider').value = speed;
+    document.getElementById('fanSpeedLabel').textContent = speed + '%';
+    document.getElementById('fanState').textContent = speed > 0 ? 'ON' : 'OFF';
+    document.getElementById('fanState').className = 'control-state' + (speed > 0 ? ' on' : '');
+    document.getElementById('fanCard').className = 'control-card' + (speed > 0 ? ' active' : '');
+    document.getElementById('fanToggle').checked = speed > 0;
+    document.getElementById('fanSlider').disabled = speed === 0;
+  }
+
+  function updateDoorUI(state) {
+    doorOpen = state === 'open';
+    document.getElementById('doorState').textContent = doorOpen ? 'OPEN' : 'CLOSED';
+    document.getElementById('doorState').className = 'control-state' + (doorOpen ? ' on' : '');
+    document.getElementById('doorCard').className = 'control-card' + (doorOpen ? ' active' : '');
+    const btn = document.getElementById('doorBtn');
+    btn.textContent = doorOpen ? 'CLOSE' : 'OPEN';
+    btn.className = 'door-btn' + (doorOpen ? ' open' : '');
+  }
+
+  function updateWindowUI(state) {
+    windowOpen = state === 'open';
+    document.getElementById('windowState').textContent = windowOpen ? 'OPEN' : 'CLOSED';
+    document.getElementById('windowState').className = 'control-state' + (windowOpen ? ' on' : '');
+    document.getElementById('windowCard').className = 'control-card' + (windowOpen ? ' active' : '');
+    const btn = document.getElementById('windowBtn');
+    btn.textContent = windowOpen ? 'CLOSE' : 'OPEN';
+    btn.className = 'door-btn' + (windowOpen ? ' open' : '');
+  }
+
+  function updateArduinoStatus(arduino) {
+    const dot = document.getElementById('arduinoDot');
+    const text = document.getElementById('arduinoText');
+    if (!arduino) return;
+    if (arduino.connected) {
+      dot.className = 'status-dot connected';
+      text.textContent = 'Arduino: online';
+    } else {
+      dot.className = 'status-dot error';
+      const when = arduino.last_seen ? ' — last seen ' + new Date(arduino.last_seen).toLocaleTimeString() : '';
+      text.textContent = 'Arduino: offline' + when;
+    }
+  }
+
+  function addLog(msg) {
+    const now = new Date();
+    const time = now.toTimeString().slice(0,8);
+    const entries = document.getElementById('logEntries');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">${time}</span><span>${msg}</span>`;
+    entries.insertBefore(entry, entries.firstChild);
+    if (entries.children.length > 10) entries.removeChild(entries.lastChild);
+  }
+</script>
+</body>
+</html>
