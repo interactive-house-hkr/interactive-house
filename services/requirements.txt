@@ -4,3 +4,5 @@ pydantic>=2.6
 pydantic-settings>=2.0
 firebase-admin>=6.4
 python-dotenv>=1.0
+bleak>=0.22.0
+pyserial>=3.5 
