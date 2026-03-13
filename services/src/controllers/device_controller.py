@@ -1,5 +1,5 @@
 from services.src.services import device_service
-from services.src.schemas.device_schema import RegisterDeviceBody
+from services.src.schemas.device_schema import ConnectDeviceBody
 
 
 # -------------------------
@@ -9,12 +9,8 @@ from services.src.schemas.device_schema import RegisterDeviceBody
 def list_devices(type: str | None = None):
     return device_service.list_devices(device_type=type)
 
-def register_device(device_uuid: str, payload: RegisterDeviceBody):
-    return device_service.register_device(
-        device_uuid=device_uuid,
-        device_type=payload.device_type,
-        capabilities=payload.capabilities,
-    )
+def connect_device(payload: ConnectDeviceBody):
+    return device_service.connect_device(payload)
 
 def get_device(device_uuid: str):
     # TODO: return device_service.get_device(device_uuid, user)
