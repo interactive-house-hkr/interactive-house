@@ -8,7 +8,7 @@ import serial.tools.list_ports
 
 from services.src.utils.logger import get_logger
 from services.src.controllers import device_controller
-from services.src.schemas.device_schema import RegisterDeviceBody
+from services.src.schemas.device_schema import ConnectDeviceBody
 
 from services.src.config.bridge_config import (
     DEVICE_UUID,
@@ -21,7 +21,7 @@ from services.src.config.bridge_config import (
 )
 
 
-logger = get_logger("middleware")
+logger = get_logger("bridge")
 
 
 def now():
@@ -191,32 +191,34 @@ async def run_usb_session(port):
 
 async def main():
     while True:
-        # Try Bluetooth first
-        print("Scanning for HMSoft (Bluetooth)...")
+        logger.info("Scanning for BLE devices...")
         devices = await BleakScanner.discover()
-        hm10 = next((d for d in devices if d.name == "HMSoft"), None)
 
-        if hm10:
-            print(f"Found HMSoft at {hm10.address}")
-            try:
-                async with BleakClient(hm10.address, disconnected_callback=on_disconnect) as client:
-                    #await run_ble_session(client)
-                    pass
-            except Exception as e:
-                print(f"BLE error: {e}")
-        else:
-            print("HMSoft not found - falling back to USB Serial.")
-            port = USB_PORT or find_arduino_port()
-            if port:
-                #await run_usb_session(port)
-                pass
-            else:
-                print("No Arduino found on USB either.")
-                print("Plug in the USB cable, or check that the COM port is correct.")
-                print("Set USB_PORT manually at the top of bridge.py (e.g. 'COM5') so that it matches the port from Device Manager")
+        if not devices:
+            logger.warning("No BLE devices found")
+            await asyncio.sleep(RECONNECT_DELAY)
+            continue
 
-        print("Retrying in 5 seconds.\n")
-        await asyncio.sleep(5)
+        for d in devices:
+            logger.info(f"Found BLE device: name={d.name}, address={d.address}")
+
+        target = next((d for d in devices if d.name), None)
+
+        if not target:
+            logger.warning("No usable BLE device found")
+            await asyncio.sleep(RECONNECT_DELAY)
+            continue
+
+        logger.info(f"Connecting to {target.name} at {target.address}")
+
+        try:
+            async with BleakClient(target.address, disconnected_callback=on_disconnect) as client:
+                await run_ble_session(client)
+        except Exception as e:
+            logger.error(f"BLE error: {e}")
+
+        logger.info(f"Retrying in {RECONNECT_DELAY} seconds")
+        await asyncio.sleep(RECONNECT_DELAY)
 
 
 if __name__ == "__main__":

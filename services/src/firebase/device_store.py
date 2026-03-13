@@ -22,7 +22,7 @@ def register_device(device_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
         "desired_state": data.get("desired_state", {}),
         "reported_state": data.get("reported_state", {}),
         "status": status,
-        "last_seen": datetime.now(timezone.utc).isoformat()
+        "last_seen": data.get("last_seen") or datetime.now(timezone.utc).isoformat(),
     }
 
     _DEVICES[device_uuid] = device
@@ -40,12 +40,14 @@ def update_device(device_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
     existing["capabilities"] = data.get("capabilities", existing.get("capabilities", []))
     existing["desired_state"] = data.get("desired_state", existing.get("desired_state", {}))
     existing["reported_state"] = data.get("reported_state", existing.get("reported_state", {}))
+
     existing_status = existing.get("status", {})
     incoming_status = data.get("status", {})
     existing_status.update(incoming_status)
     existing_status["connected"] = True
     existing["status"] = existing_status
-    existing["last_seen"] = datetime.now(timezone.utc).isoformat()
+
+    existing["last_seen"] = data.get("last_seen") or datetime.now(timezone.utc).isoformat()
 
     return existing
 

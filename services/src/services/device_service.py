@@ -1,37 +1,40 @@
 from datetime import datetime, timezone
 import uuid
 from services.src.firebase import device_store
+from services.src.schemas.device_schema import ConnectDeviceBody
 from typing import Any, Dict
 
 
-def connect_device(payload) -> Dict[str, Any]:
+def connect_device(payload: ConnectDeviceBody) -> Dict[str, Any]:
     data = payload.model_dump()
-    incoming_uuid = data.get("device_uuid")
+    devices = data.get("devices", {})
 
-    if incoming_uuid:
+    connected_devices: Dict[str, Dict[str, Any]] = {}
+    generated_uuids: Dict[str, str] = {}
+
+    for device_key, device_data in devices.items():
+        incoming_uuid = device_data.get("device_uuid")
+
+        if not incoming_uuid:
+            incoming_uuid = str(uuid.uuid4())
+            device_data["device_uuid"] = incoming_uuid
+            generated_uuids[device_key] = incoming_uuid
+
         existing_device = device_store.get_device(incoming_uuid)
 
         if existing_device:
-            updated_device = device_store.update_device(incoming_uuid, data)
-            return {
-                "message": "Device connected",
-                "device": updated_device,
-            }
+            saved_device = device_store.update_device(incoming_uuid, device_data)
+        else:
+            saved_device = device_store.register_device(incoming_uuid, device_data)
 
-        created_device = device_store.register_device(incoming_uuid, data)
-        return {
-            "message": "Device connected with provided UUID",
-            "device": created_device,
-        }
-
-    new_uuid = str(uuid.uuid4())
-    data["device_uuid"] = new_uuid
-    created_device = device_store.register_device(new_uuid, data)
+        connected_devices[incoming_uuid] = saved_device
 
     return {
-        "message": "New device connected",
-        "device": created_device,
+        "message": "Devices connected",
+        "devices": connected_devices,
+        "generated_uuids": generated_uuids,
     }
+
 
 def list_devices(device_type: str | None = None):
     devices = device_store.list_devices()
