@@ -1,19 +1,24 @@
 # Interactive House
 
-Course project (DA330B, VT26): an Interactive/Smart House system with **Devices (simulation)**, a **Server + Database (DB)**, and **Units (clients)** (e.g., mobile + computer).  
+Course project for **DA330B Software Engineering (VT26)**. Teachers: **Marijana Teljega** and **Daniel Einarson**.
 
+## Project overview
+Interactive House is a system for observing and controlling household devices through human-controlled interactions rather than full automation. The system consists of a **Server**, **Units**, **Devices**, and the communication between them.
 
-> This README is intentionally short for now. We’ll expand it as the project evolves.
+Units are the clients used to observe and control devices, primarily through **web** and **mobile** interfaces. The project includes both **simulated** and **physical** devices.
+
+## Artefacts
+Each subgroup maintains its own project artefacts: **Vision**, **Requirements**, **Supplementary Requirements**, **Risks**, **Design**, and **Test Plan**.
 
 ## Repository structure (initial)
 Planned high-level layout (may change):
-- `apps/` — Units (mobile/web)
-- `services/` — Server/API + DB assets (migrations, seeds, etc.)
-- `devices/` — Device simulation(s)
-- `shared/` — Shared contracts/utilities (API DTOs, schemas, etc.)
-- `docs/` — Project documentation
+- `apps/` - Units (mobile/web)
+- `services/` - Server/API + DB assets (migrations, seeds, etc.)
+- `devices/` - Device simulation(s)
+- `shared/` - Shared contracts/utilities (API DTOs, schemas, etc.)
+- `docs/` - Project documentation
 
-The Free group can create a separate folder depending on what we choose to build in the “free” part (e.g., voice-to-action, more simulated devices, etc.). If it fits better, they can also place their work inside an existing folder (e.g., `apps/`).
+The Free group can create a separate folder depending on what we choose to build in the "free" part (e.g., voice-to-action, more simulated devices, etc.). If it fits better, they can also place their work inside an existing folder (e.g., `apps/`).
 
 ## Project board
 We use **GitHub Projects** for planning and tracking:
@@ -23,13 +28,14 @@ We use **GitHub Projects** for planning and tracking:
 ## How we work
 - Work happens in **branches** and gets merged via **Pull Requests** into `main`.
 - Minimum **1 review** is required before merge.
+- Fill in the PR template when opening a Pull Request.
 - See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the step-by-step workflow.
 
 ## Timeline (May change)
 
 ```mermaid
 gantt
-title Interactive House – Project Timeline
+title Interactive House - Project Timeline
 dateFormat  YYYY-MM-DD
 
 section Phases
