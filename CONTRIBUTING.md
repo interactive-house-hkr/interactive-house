@@ -108,7 +108,7 @@ GitHub often shows:
 2. Verify:
    - **base**: `main`
    - **compare**: your branch
-3. Write a clear title + description.
+3. Write a clear title and fill in the PR template.
 
 ### Option B: The “manual” way
 1. Repo → **Pull requests** → **New pull request**
@@ -116,7 +116,7 @@ GitHub often shows:
 3. Create PR.
 
 ### Link the PR to the Issue (important)
-In the PR description, include one of these:
+In the PR template / description, include one of these:
 - `Closes #123` (auto-closes the issue when merged), or
 - `Relates to #123` (if it shouldn’t auto-close)
 

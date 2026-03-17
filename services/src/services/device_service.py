@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 import uuid
 from services.src.firebase import device_store
 from services.src.schemas.device_schema import ConnectDeviceBody
+from fastapi import HTTPException
+from services.src.firebase import device_store
 from typing import Any, Dict
 
 
@@ -42,6 +44,24 @@ def list_devices(device_type: str | None = None):
         devices = [d for d in devices if d.get("device_type") == device_type]
     return devices
 
+def get_device(device_uuid: str)-> Dict[str, Any]:
+    device = device_store.get_device(device_uuid)
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    return device
+
+def delete_device(device_uuid:str) -> dict[str, str]:
+    device = device_store.delete_device(device_uuid)
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    
+    return {
+        "message": "Device deleted successfully",
+        "device_uuid": device_uuid
+    }
 
 def heartbeat(device_uuid: str):
     now = datetime.now(timezone.utc)

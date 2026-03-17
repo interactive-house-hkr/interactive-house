@@ -55,6 +55,8 @@ def update_device(device_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
 def list_devices() -> list[Dict[str, Any]]:
     return list(_DEVICES.values())
 
+def delete_device(device_uuid: str)-> Dict[str, Any] | None: 
+    return _DEVICES.pop(device_uuid, None)
 
 def update_last_seen(device_uuid: str, timestamp: datetime) -> Dict[str, Any]:
     device = _DEVICES.get(device_uuid)

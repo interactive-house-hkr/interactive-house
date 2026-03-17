@@ -13,16 +13,14 @@ def connect_device(payload: ConnectDeviceBody):
     return device_service.connect_device(payload)
 
 def get_device(device_uuid: str):
-    # TODO: return device_service.get_device(device_uuid, user)
-    return {"todo": "get_device service call", "device_uuid": device_uuid}
+    return device_service.get_device(device_uuid)
 
 def update_device(device_uuid: str):
     # TODO: return device_service.update_device(device_uuid, payload, user)
     return {"todo": "update_device service call", "device_uuid": device_uuid}
 
 def delete_device(device_uuid: str):
-    # TODO: return device_service.delete_device(device_uuid, user)
-    return {"todo": "delete_device service call", "device_uuid": device_uuid}
+    return device_service.delete_device(device_uuid)   
 
 # -------------------------
 # Commands
