@@ -8,16 +8,30 @@ from services.src.config.bridge_config import RECONNECT_DELAY
 logger = get_logger("bridge")
 
 
-async def main():
+async def run_bridge():
+    """
+    Run the bridge communication loop.
+    This function is called as a background task by FastAPI.
+    It continuously attempts to connect to devices via BLE and USB.
+    """
+    logger.info("Bridge started - scanning for devices via BLE and USB")
+    
     while True:
-        ble_connected = await run_ble()
+        try:
+            # Try BLE first
+            ble_connected = await run_ble()
 
-        if not ble_connected:
-            await run_usb()
+            if not ble_connected:
+                # Fall back to USB
+                await run_usb()
 
-        logger.info(f"Retrying in {RECONNECT_DELAY} seconds")
-        await asyncio.sleep(RECONNECT_DELAY)
+            logger.info(f"Retrying device connection in {RECONNECT_DELAY} seconds")
+            await asyncio.sleep(RECONNECT_DELAY)
+        except Exception as e:
+            logger.error(f"Bridge error: {e}")
+            await asyncio.sleep(RECONNECT_DELAY)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Standalone execution (for testing)
+    asyncio.run(run_bridge())

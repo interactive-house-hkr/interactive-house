@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from services.src.services.auth_service import optional_user
-from services.src.schemas.device_schema import RegisterDeviceBody
+from services.src.schemas.device_schema import ConnectDeviceBody
 from services.src.controllers import device_controller as controller
 
 

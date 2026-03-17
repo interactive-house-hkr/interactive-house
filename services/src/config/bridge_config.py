@@ -10,3 +10,6 @@ USB_PORT = os.getenv("USB_PORT") or None
 
 HEARTBEAT_INTERVAL = float(os.getenv("HEARTBEAT_INTERVAL", "1"))
 RECONNECT_DELAY = float(os.getenv("RECONNECT_DELAY", "5"))
+
+# Bridge integration with server
+ENABLE_BRIDGE = os.getenv("ENABLE_BRIDGE", "true").lower() == "true"

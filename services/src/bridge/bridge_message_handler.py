@@ -98,7 +98,11 @@ async def handle_command_ack(message: str):
         f"status={status}, reported_state={reported_state}"
     )
 
-    # Here the state should be updated if the ACK is successful
+    try:
+        # Update device state with reported_state from ACK
+        device_controller.handle_command_ack(device_uuid, status, reported_state)
+    except Exception as e:
+        logger.error(f"Failed to update state from command ACK: {e}")
 
 
 async def handle_incoming_message(transport_type: str, transport, message: str):
