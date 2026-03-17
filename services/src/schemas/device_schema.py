@@ -3,14 +3,12 @@ from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
 
 
-
 class DeviceSchema(BaseModel):
     device_uuid: str
-    device_type: str | None = None
+    type: str | None = None
     transport: Dict[str, Any] = Field(default_factory=dict)
-    capabilities: List[Dict[str, Any]] = Field(default_factory=list)
-    desired_state: Dict[str, Any] = Field(default_factory=dict)
-    reported_state: Dict[str, Any] = Field(default_factory=dict)
+    capabilities: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    state: Dict[str, Any] = Field(default_factory=dict)
     status: Dict[str, Any] = Field(default_factory=dict)
     last_seen: datetime | None = None
 
