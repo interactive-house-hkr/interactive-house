@@ -16,11 +16,10 @@ def register_device(device_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
 
     device = {
         "device_uuid": device_uuid,
-        "device_type": data.get("device_type"),
+        "type": data.get("type"),
         "transport": data.get("transport", {}),
-        "capabilities": data.get("capabilities", []),
-        "desired_state": data.get("desired_state", {}),
-        "reported_state": data.get("reported_state", {}),
+        "capabilities": data.get("capabilities", {}),
+        "state": data.get("state", {}),
         "status": status,
         "last_seen": data.get("last_seen") or datetime.now(timezone.utc).isoformat(),
     }
@@ -35,11 +34,10 @@ def update_device(device_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
     if not existing:
         raise ValueError("Device not found")
 
-    existing["device_type"] = data.get("device_type", existing.get("device_type"))
+    existing["type"] = data.get("type", existing.get("type"))
     existing["transport"] = data.get("transport", existing.get("transport", {}))
-    existing["capabilities"] = data.get("capabilities", existing.get("capabilities", []))
-    existing["desired_state"] = data.get("desired_state", existing.get("desired_state", {}))
-    existing["reported_state"] = data.get("reported_state", existing.get("reported_state", {}))
+    existing["capabilities"] = data.get("capabilities", existing.get("capabilities", {}))
+    existing["state"] = data.get("state", existing.get("state", {}))
 
     existing_status = existing.get("status", {})
     incoming_status = data.get("status", {})
