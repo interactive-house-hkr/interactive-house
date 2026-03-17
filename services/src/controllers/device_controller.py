@@ -29,7 +29,7 @@ def delete_device(device_uuid: str):
 # Commands
 # -------------------------
 
-def post_command(device_uuid: str):
+def post_command(device_uuid: str, command: str, params: dict = None):
     # TODO: return command_service.queue_command(device_uuid, payload, user)
     return {"todo": "queue_command service call", "device_uuid": device_uuid}
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from services.src.services.auth_service import optional_user
-from services.src.schemas.device_schema import ConnectDeviceBody
+from services.src.schemas.device_schema import CommandPayload
 from services.src.controllers import device_controller as controller
 
 
@@ -30,8 +30,8 @@ def delete_device(device_uuid: str, user=Depends(optional_user)):
 # -------------------------
 
 @router.post("/{device_uuid}/commands")
-def post_command(device_uuid: str, user=Depends(optional_user)):
-    return controller.post_command(device_uuid=device_uuid)
+def post_command(device_uuid: str, payload: CommandPayload, user=Depends(optional_user)):
+    return controller.post_command(device_uuid, payload.command, payload.params)
 
 # -------------------------
 # Health

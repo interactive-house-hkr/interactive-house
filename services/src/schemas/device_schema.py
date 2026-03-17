@@ -15,3 +15,8 @@ class DeviceSchema(BaseModel):
 
 class ConnectDeviceBody(BaseModel):
     devices: Dict[str, DeviceSchema] = Field(default_factory=dict)
+
+
+class CommandPayload(BaseModel):
+    command: str
+    params: dict = {}

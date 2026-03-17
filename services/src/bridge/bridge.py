@@ -9,22 +9,17 @@ logger = get_logger("bridge")
 
 
 async def run_bridge():
-    """
-    Run the bridge communication loop.
-    This function is called as a background task by FastAPI.
-    It continuously attempts to connect to devices via BLE and USB.
-    """
+    """Run the bridge communication loop."""
     logger.info("Bridge started - scanning for devices via BLE and USB")
+    
+    # Start command sender as concurrent task
     
     while True:
         try:
-            # Try BLE first
             ble_connected = await run_ble()
-
             if not ble_connected:
-                # Fall back to USB
                 await run_usb()
-
+            
             logger.info(f"Retrying device connection in {RECONNECT_DELAY} seconds")
             await asyncio.sleep(RECONNECT_DELAY)
         except Exception as e:
