@@ -3,7 +3,6 @@ import uuid
 from services.src.firebase import device_store
 from services.src.schemas.device_schema import ConnectDeviceBody
 from fastapi import HTTPException
-from services.src.firebase import device_store
 from typing import Any, Dict
 
 
@@ -67,3 +66,15 @@ def heartbeat(device_uuid: str):
     now = datetime.now(timezone.utc)
     return device_store.update_last_seen(device_uuid, now)
 
+def post_command(device_uuid: str, command: str, params: dict | None = None) -> Dict[str, Any]:
+    device = device_store.get_device(device_uuid)
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    return {
+        "message": "Command handed off to service",
+        "device_uuid": device_uuid,
+        "command": command,
+        "params": params or {},
+    }
