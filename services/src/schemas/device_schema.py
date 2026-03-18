@@ -18,5 +18,4 @@ class ConnectDeviceBody(BaseModel):
 
 
 class CommandPayload(BaseModel):
-    command: str
-    params: dict = {}
+    state: Dict[str, Any]
