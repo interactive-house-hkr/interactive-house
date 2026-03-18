@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from services.src.services.auth_service import optional_user
-from services.src.schemas.device_schema import RegisterDeviceBody
+from services.src.schemas.device_schema import CommandPayload
 from services.src.controllers import device_controller as controller
 
 
@@ -17,17 +17,9 @@ router = APIRouter(
 def list_devices(type: str | None = None, user=Depends(optional_user)):
     return controller.list_devices(type=type)
 
-@router.post("/{device_uuid}")
-def register_device(device_uuid: str, payload: RegisterDeviceBody, user=Depends(optional_user)):
-    return controller.register_device(device_uuid=device_uuid, payload=payload)
-
 @router.get("/{device_uuid}")
 def get_device(device_uuid: str, user=Depends(optional_user)):
     return controller.get_device(device_uuid=device_uuid)
-
-@router.patch("/{device_uuid}")
-def update_device(device_uuid: str, user=Depends(optional_user)):
-    return controller.update_device(device_uuid=device_uuid)
 
 @router.delete("/{device_uuid}")
 def delete_device(device_uuid: str, user=Depends(optional_user)):
@@ -38,8 +30,8 @@ def delete_device(device_uuid: str, user=Depends(optional_user)):
 # -------------------------
 
 @router.post("/{device_uuid}/commands")
-def post_command(device_uuid: str, user=Depends(optional_user)):
-    return controller.post_command(device_uuid=device_uuid)
+def post_command(device_uuid: str, payload: CommandPayload, user=Depends(optional_user)):
+    return controller.post_command(device_uuid, payload.command, payload.params)
 
 # -------------------------
 # Health

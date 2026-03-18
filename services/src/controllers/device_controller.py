@@ -1,5 +1,8 @@
 from services.src.services import device_service
-from services.src.schemas.device_schema import RegisterDeviceBody
+from services.src.schemas.device_schema import ConnectDeviceBody
+from services.src.utils.logger import get_logger
+
+logger = get_logger("device_controller")
 
 
 # -------------------------
@@ -9,12 +12,8 @@ from services.src.schemas.device_schema import RegisterDeviceBody
 def list_devices(type: str | None = None):
     return device_service.list_devices(device_type=type)
 
-def register_device(device_uuid: str, payload: RegisterDeviceBody):
-    return device_service.register_device(
-        device_uuid=device_uuid,
-        device_type=payload.device_type,
-        capabilities=payload.capabilities,
-    )
+def connect_device(payload: ConnectDeviceBody):
+    return device_service.connect_device(payload)
 
 def get_device(device_uuid: str):
     return device_service.get_device(device_uuid)
@@ -30,9 +29,27 @@ def delete_device(device_uuid: str):
 # Commands
 # -------------------------
 
-def post_command(device_uuid: str):
+def post_command(device_uuid: str, command: str, params: dict = None):
     # TODO: return command_service.queue_command(device_uuid, payload, user)
     return {"todo": "queue_command service call", "device_uuid": device_uuid}
+
+# -------------------------
+# Bridge Integration
+# -------------------------
+
+def handle_command_ack(device_uuid: str, status: str, reported_state: dict):
+    """
+    Handle command acknowledgement from device.
+    Updates the device's reported state.
+    """
+    try:
+        # Update device with reported state
+        logger.info(f"Updating device {device_uuid} with reported state: {reported_state}")
+        # TODO: Implement state update in service layer
+        return {"device_uuid": device_uuid, "status": status}
+    except Exception as e:
+        logger.error(f"Failed to handle command ACK: {e}")
+        raise
 
 # -------------------------
 # Health
