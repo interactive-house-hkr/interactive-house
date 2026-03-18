@@ -1,6 +1,6 @@
 # This file is for the RVC device, which is a type of robotic vacuum cleaner. It is used to control the device and receive updates from it.
 
-from RVC_Vis import RVCVisualizer
+from devices.RVC.RVC_Vis import RVCVisualizer
 import time
 import random
 

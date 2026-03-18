@@ -1,3 +1,6 @@
+# This file is to visualize the RVC's position, 
+# the way it does it now is a temporary solution before the frontend for it is implemented.
+
 import matplotlib.pyplot as plt
 
 class RVCVisualizer:
