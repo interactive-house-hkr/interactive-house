@@ -31,7 +31,7 @@ def delete_device(device_uuid: str, user=Depends(optional_user)):
 
 @router.post("/{device_uuid}/commands")
 def post_command(device_uuid: str, payload: CommandPayload, user=Depends(optional_user)):
-    return controller.post_command(device_uuid, payload.command, payload.params)
+    return controller.post_command(device_uuid, payload)
 
 # -------------------------
 # Health
