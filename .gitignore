@@ -8,3 +8,4 @@ __pycache__/
 *.py[cod]
 *tmpclaude*
 .idea/
+devices/arduino-code/Arduino-LiquidCrystal-I2C-library-master.zip
