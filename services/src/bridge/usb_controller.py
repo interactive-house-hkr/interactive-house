@@ -5,6 +5,10 @@ import serial.tools.list_ports
 
 from services.src.utils.logger import get_logger
 from services.src.bridge.bridge_message_handler import handle_incoming_message
+from services.src.bridge.bridge_state import (
+    set_active_usb_serial,
+    clear_active_usb_serial,
+)
 from services.src.config.bridge_config import USB_BAUD, USB_PORT, CMD_DELAY
 
 logger = get_logger("usb_controller")
@@ -41,6 +45,7 @@ async def run_usb_session(port: str):
         return
 
     logger.info("Connected via USB Serial")
+    set_active_usb_serial(ser)
 
     buffer = ""
 
@@ -65,6 +70,7 @@ async def run_usb_session(port: str):
     except Exception as e:
         logger.error(f"USB session error: {e}")
     finally:
+        clear_active_usb_serial()
         if ser.is_open:
             ser.close()
         logger.info("USB session ended")
