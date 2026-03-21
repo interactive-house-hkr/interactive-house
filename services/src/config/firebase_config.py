@@ -1,6 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, db
-from services.src.config.settings import settings
+from .settings import settings
 from pathlib import Path
 
 def init_firebase():

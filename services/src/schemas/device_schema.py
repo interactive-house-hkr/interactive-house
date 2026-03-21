@@ -1,21 +1,14 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional
 
 
 class DeviceSchema(BaseModel):
     device_uuid: str
-    type: str | None = None
-    transport: Dict[str, Any] = Field(default_factory=dict)
-    capabilities: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    state: Dict[str, Any] = Field(default_factory=dict)
-    status: Dict[str, Any] = Field(default_factory=dict)
+    device_type: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
     last_seen: datetime | None = None
 
 
-class ConnectDeviceBody(BaseModel):
-    devices: Dict[str, DeviceSchema] = Field(default_factory=dict)
-
-
-class CommandPayload(BaseModel):
-    state: Dict[str, Any]
+class RegisterDeviceBody(BaseModel):
+    device_type: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
