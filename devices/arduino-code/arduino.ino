@@ -87,8 +87,7 @@ void sendAck(const char* device, JsonObject state) {
   doc["device_uuid"] = device;
   doc["status"] = "ok";
 
-  doc["state"] = state;
-
+  doc["reported_state"] = state;
   serializeJson(doc, Serial);
   Serial.println();
 }
