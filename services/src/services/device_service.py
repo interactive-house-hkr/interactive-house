@@ -6,6 +6,22 @@ from fastapi import HTTPException
 from typing import Any, Dict
 
 
+OFFLINE_THRESHOLD_SECONDS = 30
+
+
+def is_device_online(device: dict) -> bool:
+    last_seen = device.get("last_seen")
+
+    if not last_seen:
+        return False
+
+    last_seen_dt = datetime.fromisoformat(last_seen)
+    now = datetime.now(timezone.utc)
+
+    diff = (now - last_seen_dt).total_seconds()
+    return diff <= OFFLINE_THRESHOLD_SECONDS
+
+
 def connect_device(payload: ConnectDeviceBody) -> Dict[str, Any]:
     data = payload.model_dump()
     devices = data.get("devices", {})
@@ -39,32 +55,43 @@ def connect_device(payload: ConnectDeviceBody) -> Dict[str, Any]:
 
 def list_devices(device_type: str | None = None):
     devices = device_store.list_devices()
+
     if device_type:
         devices = [d for d in devices if d.get("device_type") == device_type]
+
+    for device in devices:
+        device["is_online"] = is_device_online(device)
+
     return devices
 
-def get_device(device_uuid: str)-> Dict[str, Any]:
+
+def get_device(device_uuid: str) -> Dict[str, Any]:
     device = device_store.get_device(device_uuid)
 
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
+    device["is_online"] = is_device_online(device)
+
     return device
 
-def delete_device(device_uuid:str) -> dict[str, str]:
+
+def delete_device(device_uuid: str) -> dict[str, str]:
     device = device_store.delete_device(device_uuid)
 
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
-    
+
     return {
         "message": "Device deleted successfully",
         "device_uuid": device_uuid
     }
 
+
 def heartbeat(device_uuid: str):
     now = datetime.now(timezone.utc)
     return device_store.update_last_seen(device_uuid, now)
+
 
 def post_command(device_uuid: str, command: str, params: dict | None = None) -> Dict[str, Any]:
     device = device_store.get_device(device_uuid)
