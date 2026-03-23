@@ -16,10 +16,10 @@ unsigned long lastHeartbeat = 0;
 // ------------------------
 // ----- Device State -----
 //-------------------------
-bool lightPower = false;
-bool fanPower = false;
+bool lightPower = true;
+bool fanPower = true;
 int fanPin = 6;
-String doorState = "closed";
+String doorState = "open";
 
 
 
