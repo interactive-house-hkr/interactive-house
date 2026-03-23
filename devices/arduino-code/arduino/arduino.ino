@@ -15,11 +15,11 @@ unsigned long lastHeartbeat = 0;
 
 // ------------------------
 // ----- Device State -----
-//-------------------------
-bool lightPower = true;
-bool fanPower = true;
+// ------------------------
+bool lightPower = false;
+bool fanPower = false;
 int fanPin = 6;
-String doorState = "open";
+String doorState = "closed";
 
 
 
@@ -63,10 +63,10 @@ void sendConnect() {
 
   // Fan
   JsonObject fan = devices["fan-1"].to<JsonObject>();
-  fan["device__uuid"] = "fan-1";
+  fan["device_uuid"] = "fan-1";
   fan["type"] = "fan";
 
-  JsonObject fanCap = fan["capabilities"].to<JsonObject>;
+  JsonObject fanCap = fan["capabilities"].to<JsonObject>();
   fanCap["power"]["type"] = "boolean";
   fanCap["power"]["writable"] = true;
 
@@ -109,7 +109,10 @@ void sendAck(const char* device, JsonObject state) {
 void setup() {
   pinMode(13, OUTPUT);
   pinMode(5, OUTPUT);
-  pinMode(fanPin, Output)
+  pinMode(fanPin, OUTPUT);
+
+  // For some reason HIGH is on, and LOW is off
+  digitalWrite(fanPin, HIGH);
 
   doorServo.attach(9);
   doorServo.write(0);
@@ -194,7 +197,7 @@ void loop() {
         if(state.containsKey("power")){
           fanPower = state["power"];
 
-          digitalWrite(fanPin, fanPower ? HIGH : LOW);
+          digitalWrite(fanPin, fanPower ? LOW : HIGH);
 
           lcd.clear();
           lcd.print(fanPower ? "FAN ON" : "FAN OFF");
