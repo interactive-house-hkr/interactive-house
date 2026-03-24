@@ -1,6 +1,5 @@
 import asyncio
 import json
-from datetime import datetime
 
 from bleak import BleakClient, BleakScanner
 
@@ -14,9 +13,7 @@ from services.src.config.bridge_config import HM10_UUID, CMD_DELAY
 
 logger = get_logger("ble_controller")
 
-
-def now() -> str:
-    return datetime.now().isoformat()
+ALLOWED_DEVICE_NAMES = {"HMSoft"}  # Change to the actual name of your BLE device if different or add more names as needed
 
 
 def on_disconnect(client):
@@ -66,7 +63,11 @@ async def run_ble_session(client: BleakClient):
     set_active_ble_client(client)
 
     handler = make_notification_handler(client)
-    await client.start_notify(HM10_UUID, handler)
+
+    try:
+        await client.start_notify(HM10_UUID, handler)
+    except Exception as e:
+        logger.warning(f"Failed to enable notifications on {HM10_UUID}: {e}")
 
     try:
         while client.is_connected:
@@ -78,26 +79,27 @@ async def run_ble_session(client: BleakClient):
 
 async def run_ble() -> bool:
     logger.info("Scanning for BLE devices...")
-    devices = await BleakScanner.discover()
+    devices = await BleakScanner.discover(timeout=5.0)
 
     if not devices:
         logger.warning("No BLE devices found")
         return False
 
-    for device in devices:
-        logger.info(f"Found BLE device: name={device.name}, address={device.address}")
+    candidates = [
+        device for device in devices
+        if (device.name or "").strip() in ALLOWED_DEVICE_NAMES
+    ]
 
-    # TODO: Maybe add some sort of identifier/detector of Arduino?
-    target = next((device for device in devices if device.name), None)
-
-    if not target:
-        logger.warning("No usable BLE device found")
+    if not candidates:
+        logger.warning("No allowed BLE device found")
         return False
+
+    target = candidates[0]
 
     logger.info(f"Connecting to {target.name} at {target.address}")
 
     try:
-        async with BleakClient(target.address, disconnected_callback=on_disconnect) as client:
+        async with BleakClient(target, disconnected_callback=on_disconnect) as client:
             await run_ble_session(client)
             return True
     except Exception as e:
