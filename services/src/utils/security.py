@@ -56,7 +56,7 @@ def create_access_token(user_id: str, extra_claims: Optional[dict[str, Any]] = N
     "sub": user_id
   }
 
-  # If extra claims such as "role": "admin" is added
+  # If extra claims such as "role": "admin" are added
   # the jwt payload will be updated
   if extra_claims:
     payload.update(extra_claims)
