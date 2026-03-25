@@ -30,8 +30,8 @@ def delete_device(device_uuid: str, user=Depends(optional_user)):
 # -------------------------
 
 @router.post("/{device_uuid}/commands")
-def post_command(device_uuid: str, payload: CommandPayload, user=Depends(optional_user)):
-    return controller.post_command(device_uuid, payload)
+async def post_command(device_uuid: str, payload: CommandPayload, user=Depends(optional_user)):
+    return await controller.post_command(device_uuid=device_uuid, payload=payload)
 
 # -------------------------
 # Health
