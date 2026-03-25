@@ -8,7 +8,8 @@ class RegisterRequest(BaseModel):
 class RegisterResponse(BaseModel):
   status: str
   user_id: str
-  token: str
+  access_token: str
+  refresh_token: str
 
 class LoginRequest(BaseModel):
   username: str
