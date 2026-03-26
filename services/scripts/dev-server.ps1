@@ -1,7 +1,6 @@
 param(
     [int]$Port = 8000,
-    [switch]$DisableBridge,
-    [switch]$MockDispatch
+    [switch]$DisableBridge
 )
 
 # This script starts the FastAPI server for local development.
@@ -38,10 +37,5 @@ if ($DisableBridge) {
     $env:ENABLE_BRIDGE = "false"
 }
 
-if ($MockDispatch) {
-    $env:MOCK_DISPATCH = "true"
-}
-
 Write-Host "Starting server on port $Port..."
 & $pythonExe -m uvicorn services.src.main:app --reload --host 0.0.0.0 --port $Port
-
