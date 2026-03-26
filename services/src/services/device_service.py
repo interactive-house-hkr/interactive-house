@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 import uuid
 from services.src.firebase import device_store
-from services.src.schemas.device_schema import ConnectDeviceBody
+from services.src.schemas.device_schema import ConnectDeviceBody, CommandPayload
 from fastapi import HTTPException
 from typing import Any, Dict
+from services.src.bridge.bridge import dispatch_command
 
 
 OFFLINE_THRESHOLD_SECONDS = 30
@@ -91,3 +92,25 @@ def delete_device(device_uuid: str) -> dict[str, str]:
 def heartbeat(device_uuid: str):
     now = datetime.now(timezone.utc)
     return device_store.update_last_seen(device_uuid, now)
+
+
+async def post_command(device_uuid: str, payload: CommandPayload) -> Dict[str, Any]:
+    device = device_store.get_device(device_uuid)
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    command_payload = {
+        "type": "COMMAND",
+        "device_uuid": device_uuid,
+        "state": payload.state,
+    }
+
+    sent = await dispatch_command(command_payload)
+
+    return {
+        "message": "Command dispatched",
+        "device_uuid": device_uuid,
+        "sent": sent,
+        "payload": command_payload,
+    }
