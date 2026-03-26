@@ -1,10 +1,10 @@
-from src.utils.security import (
+from services.src.utils.security import (
   hash_password,
   create_access_token,
   create_refresh_token,
   verify_password
   )
-from src.schemas.auth_schema import (
+from services.src.schemas.auth_schema import (
   RegisterRequest,
   LoginRequest
 )

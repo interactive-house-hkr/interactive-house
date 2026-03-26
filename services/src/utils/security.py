@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from datetime import datetime, timedelta, timezone
 from jwt import InvalidTokenError
 from typing import Any, Optional
-from config import Settings
+from services.src.config.settings import Settings
 import jwt
 import bcrypt
 import secrets
