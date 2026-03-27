@@ -8,6 +8,7 @@ from services.src.bridge.bridge_message_handler import handle_incoming_message
 from services.src.bridge.bridge_state import (
     set_active_ble_client,
     clear_active_ble_client,
+    clear_device_transports_for,
 )
 from services.src.config.bridge_config import HM10_UUID, CMD_DELAY
 
@@ -73,6 +74,7 @@ async def run_ble_session(client: BleakClient):
         while client.is_connected:
             await asyncio.sleep(1)
     finally:
+        clear_device_transports_for("ble", client)
         clear_active_ble_client()
         logger.info("BLE session ended")
 

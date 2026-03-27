@@ -59,7 +59,26 @@ def delete_device(device_uuid: str)-> Dict[str, Any] | None:
 def update_last_seen(device_uuid: str, timestamp: datetime) -> Dict[str, Any]:
     device = _DEVICES.get(device_uuid)
     if not device:
-        return {"error": "device not found", "device_uuid": device_uuid}
+        raise ValueError(f"Device not found: {device_uuid}")
 
     device["last_seen"] = timestamp.isoformat()
+    return device
+
+
+def update_command_state(device_uuid: str, status: str | None, state: Dict[str, Any]) -> Dict[str, Any]:
+    device = _DEVICES.get(device_uuid)
+    if not device:
+        raise ValueError(f"Device not found: {device_uuid}")
+
+    existing_state = device.get("state", {})
+    existing_state.update(state or {})
+    device["state"] = existing_state
+
+    existing_status = device.get("status", {})
+    if status is not None:
+        existing_status["last_command_status"] = status
+    existing_status["connected"] = True
+    device["status"] = existing_status
+    device["last_seen"] = datetime.now(timezone.utc).isoformat()
+
     return device

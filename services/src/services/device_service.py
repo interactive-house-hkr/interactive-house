@@ -58,7 +58,7 @@ def list_devices(device_type: str | None = None):
     devices = device_store.list_devices()
 
     if device_type:
-        devices = [d for d in devices if d.get("device_type") == device_type]
+        devices = [d for d in devices if d.get("type") == device_type]
 
     for device in devices:
         device["is_online"] = is_device_online(device)
@@ -91,7 +91,10 @@ def delete_device(device_uuid: str) -> dict[str, str]:
 
 def heartbeat(device_uuid: str):
     now = datetime.now(timezone.utc)
-    return device_store.update_last_seen(device_uuid, now)
+    try:
+        return device_store.update_last_seen(device_uuid, now)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 async def post_command(device_uuid: str, payload: CommandPayload) -> Dict[str, Any]:
@@ -106,7 +109,7 @@ async def post_command(device_uuid: str, payload: CommandPayload) -> Dict[str, A
         "state": payload.state,
     }
 
-    sent = await dispatch_command(command_payload)
+    sent = await dispatch_command(device_uuid, command_payload)
 
     return {
         "message": "Command dispatched",
@@ -114,3 +117,10 @@ async def post_command(device_uuid: str, payload: CommandPayload) -> Dict[str, A
         "sent": sent,
         "payload": command_payload,
     }
+
+
+def handle_command_ack(device_uuid: str, status: str | None, state: dict) -> Dict[str, Any]:
+    try:
+        return device_store.update_command_state(device_uuid, status, state)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

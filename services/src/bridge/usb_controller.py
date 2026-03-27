@@ -8,6 +8,7 @@ from services.src.bridge.bridge_message_handler import handle_incoming_message
 from services.src.bridge.bridge_state import (
     set_active_usb_serial,
     clear_active_usb_serial,
+    clear_device_transports_for,
 )
 from services.src.config.bridge_config import USB_BAUD, USB_PORT, CMD_DELAY
 
@@ -70,6 +71,7 @@ async def run_usb_session(port: str):
     except Exception as e:
         logger.error(f"USB session error: {e}")
     finally:
+        clear_device_transports_for("usb", ser)
         clear_active_usb_serial()
         if ser.is_open:
             ser.close()

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 
 class DeviceSchema(BaseModel):
-    device_uuid: str
+    device_uuid: str | None = None
     type: str | None = None
     transport: Dict[str, Any] = Field(default_factory=dict)
     capabilities: Dict[str, Dict[str, Any]] = Field(default_factory=dict)

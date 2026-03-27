@@ -7,6 +7,7 @@ import serial
 from services.src.utils.logger import get_logger
 from services.src.controllers import device_controller
 from services.src.schemas.device_schema import ConnectDeviceBody
+from services.src.bridge.bridge_state import register_device_transport
 
 logger = get_logger("bridge_message_handler")
 
@@ -39,6 +40,9 @@ async def handle_connect_message(transport_type: str, transport, message: str):
     except Exception as e:
         logger.error(f"Failed to connect devices: {e}")
         return
+
+    for device_uuid in result.get("devices", {}).keys():
+        register_device_transport(device_uuid, transport_type, transport)
 
     response_payload = {
         "type": "CONNECT_ACK",
@@ -91,16 +95,15 @@ async def handle_command_ack(message: str):
 
     device_uuid = parsed.get("device_uuid")
     status = parsed.get("status")
-    reported_state = parsed.get("reported_state", {})
+    state = parsed.get("state", {})
 
     logger.info(
         f"Command ACK received from device_uuid={device_uuid}, "
-        f"status={status}, reported_state={reported_state}"
+        f"status={status}, state={state}"
     )
 
     try:
-        # Update device state with reported_state from ACK
-        device_controller.handle_command_ack(device_uuid, status, reported_state)
+        device_controller.handle_command_ack(device_uuid, status, state)
     except Exception as e:
         logger.error(f"Failed to update state from command ACK: {e}")
 

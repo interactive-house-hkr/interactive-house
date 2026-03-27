@@ -45,15 +45,14 @@ async def post_command(device_uuid: str, payload: CommandPayload):
 # Bridge Integration
 # -------------------------
 
-def handle_command_ack(device_uuid: str, status: str, reported_state: dict):
+def handle_command_ack(device_uuid: str, status: str, state: dict):
     """
     Handle command acknowledgement from device.
-    Updates the device's reported state.
+    Updates the device's state.
     """
     try:
-        logger.info(f"Updating device {device_uuid} with reported state: {reported_state}")
-        # TODO: Implement state update in service layer
-        return {"device_uuid": device_uuid, "status": status}
+        logger.info(f"Updating device {device_uuid} with state: {state}")
+        return device_service.handle_command_ack(device_uuid, status, state)
     except Exception as e:
         logger.error(f"Failed to handle command ACK: {e}")
         raise

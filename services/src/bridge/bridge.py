@@ -5,6 +5,7 @@ from services.src.bridge.ble_controller import run_ble, send_ble_json
 from services.src.bridge.usb_controller import run_usb, send_usb_json
 from services.src.bridge.bridge_state import (
     get_active_ble_client,
+    get_device_transport,
     get_active_usb_serial,
 )
 from services.src.config.bridge_config import RECONNECT_DELAY
@@ -27,16 +28,29 @@ async def run_bridge():
             await asyncio.sleep(RECONNECT_DELAY)
 
 
-async def dispatch_command(payload: dict) -> bool:
+async def dispatch_command(device_uuid: str, payload: dict) -> bool:
+    binding = get_device_transport(device_uuid)
+    if binding is not None:
+        transport_type = binding["transport_type"]
+        transport = binding["transport"]
+
+        if transport_type == "ble":
+            return await send_ble_json(transport, payload)
+
+        if transport_type == "usb":
+            return await send_usb_json(transport, payload)
+
+        logger.warning(f"Unsupported transport type '{transport_type}' for device {device_uuid}")
+        return False
+
     ble_client = get_active_ble_client()
-    if ble_client is not None:
-        return await send_ble_json(ble_client, payload)
-
     usb_serial = get_active_usb_serial()
-    if usb_serial is not None:
-        return await send_usb_json(usb_serial, payload)
-
-    logger.warning("No active BLE or USB transport available for command dispatch")
+    logger.warning(
+        "No registered transport for device %s. Active BLE=%s, active USB=%s",
+        device_uuid,
+        ble_client is not None,
+        usb_serial is not None,
+    )
     return False
 
 
