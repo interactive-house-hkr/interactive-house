@@ -6,8 +6,12 @@
 #include <LiquidCrystal_I2C.h>
 #include <Servo.h>
 #include <ArduinoJson.h>
+//Added library SoftwareSerial
+#include <SoftwareSerial.h>
 
-LiquidCrystal_I2C lcd(0x3F, 16, 2);
+SoftwareSerial btSerial(10, 11);
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 Servo doorServo;
 
 unsigned long lastHeartbeat = 0;
@@ -72,8 +76,8 @@ void sendConnect() {
 
   fan["state"]["power"] = fanPower;
 
-  serializeJson(doc, Serial);
-  Serial.println();
+  serializeJson(doc, btSerial);
+  btSerial.println();
 }
 
 
@@ -85,8 +89,8 @@ void sendHeartbeat() {
   doc["type"] = "HEARTBEAT";
   doc["device_uuid"] = "arduino-1";
 
-  serializeJson(doc, Serial);
-  Serial.println();
+  serializeJson(doc, btSerial);
+  btSerial.println();
 }
 
 
@@ -102,8 +106,8 @@ void sendAck(const char* device, JsonObject state) {
   doc["status"] = "ok";
 
   doc["reported_state"] = state;
-  serializeJson(doc, Serial);
-  Serial.println();
+  serializeJson(doc, btSerial);
+  btSerial.println();
 }
 
 void setup() {
@@ -118,6 +122,8 @@ void setup() {
   doorServo.write(0);
 
   Serial.begin(9600);
+  //Added this for BT
+  btSerial.begin(9600);
 
   lcd.begin();
   lcd.backlight();
@@ -132,15 +138,15 @@ void setup() {
 // ----- Recieve Command -----
 // ---------------------------
 void loop() {
-  if (Serial.available()) {
-    String input = Serial.readStringUntil('\n');
+  if (btSerial.available()) {
+    String input = btSerial.readStringUntil('\n');
     input.trim();
 
     StaticJsonDocument<256> doc;
     DeserializationError err = deserializeJson(doc, input);
 
     if (err) {
-      Serial.println("{\"error\":\"invalid_json\"}");
+      btSerial.println("{\"error\":\"invalid_json\"}");
       return;
     }
     
