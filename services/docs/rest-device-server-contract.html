@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REST Device - Server API Contract</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --text: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --yellow: #d97706;
+      --red: #dc2626;
+      --code-bg: #0f172a;
+      --code-text: #e5e7eb;
+      --json-key: #93c5fd;
+      --json-string: #86efac;
+      --json-number: #fca5a5;
+      --json-bool: #fcd34d;
+      --json-null: #c4b5fd;
+    }
+
+    body.dark {
+      --bg: #0f172a;
+      --surface: #111827;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --line: #334155;
+      --blue: #60a5fa;
+      --green: #4ade80;
+      --yellow: #f59e0b;
+      --red: #f87171;
+      --code-bg: #020617;
+      --code-text: #e5e7eb;
+      --json-key: #93c5fd;
+      --json-string: #86efac;
+      --json-number: #fca5a5;
+      --json-bool: #fcd34d;
+      --json-null: #c4b5fd;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h1, h2, h3 {
+      color: #102a43;
+    }
+
+    body.dark h1,
+    body.dark h2,
+    body.dark h3 {
+      color: #f8fafc;
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 40px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e4e7eb;
+    }
+
+    .card, .note, .ok, .warning {
+      margin-top: 20px;
+      padding: 18px 20px;
+      border-radius: 10px;
+    }
+
+    .card {
+      background: #f9fafb;
+      border-left: 5px solid var(--blue);
+    }
+
+    body.dark .card {
+      background: #172033;
+    }
+
+    .ok {
+      background: #ecfdf3;
+      border-left: 5px solid var(--green);
+    }
+
+    body.dark .ok {
+      background: #052e16;
+    }
+
+    .warning {
+      background: #fff7ed;
+      border-left: 5px solid var(--yellow);
+    }
+
+    body.dark .warning {
+      background: #3b2206;
+    }
+
+    .note {
+      background: #fef2f2;
+      border-left: 5px solid var(--red);
+    }
+
+    body.dark .note {
+      background: #3b0d0d;
+    }
+
+    .toc ul {
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    .toc li {
+      margin: 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f0f4f8;
+    }
+
+    body.dark th {
+      background: #1e293b;
+    }
+
+    code {
+      background: #e5e7eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    body.dark code {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      border-radius: 10px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .json .key { color: var(--json-key); }
+    .json .string { color: var(--json-string); }
+    .json .number { color: var(--json-number); }
+    .json .boolean { color: var(--json-bool); }
+    .json .null { color: var(--json-null); }
+
+    .flow-step {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+    }
+
+    body.dark .flow-step {
+      background: #172033;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+    }
+
+    .theme-toggle {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .theme-toggle:hover {
+      opacity: 0.9;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <button class="theme-toggle" id="theme-toggle" type="button">Switch to Dark Mode</button>
+    </div>
+    <h1>REST Device - Server API Contract</h1>
+
+    <div class="card">
+      This document describes how a REST-based device communicates with the Interactive House server.
+      This is intended for devices such as simulations or external programs that do <strong>not</strong>
+      use the BLE/USB bridge.
+    </div>
+
+    <div class="card toc">
+      <h2>Table of Contents</h2>
+      <ul>
+        <li><a href="#overview">1. Overview</a></li>
+        <li><a href="#flow">2. Required Flow</a></li>
+        <li><a href="#connect">3. Connect</a></li>
+        <li><a href="#heartbeat">4. Heartbeat</a></li>
+        <li><a href="#poll">5. Poll Next Command</a></li>
+        <li><a href="#ack">6. Command Acknowledgement</a></li>
+        <li><a href="#unit">7. Unit-side Command Flow</a></li>
+        <li><a href="#rules">8. Important Rules</a></li>
+      </ul>
+    </div>
+
+    <h2 id="overview">1. Overview</h2>
+    <div class="card">
+      <p>A REST device talks directly to the server using HTTP.</p>
+      <p>Base URL prefix:</p>
+      <pre>/api/v1</pre>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Direction</th>
+            <th>Endpoint</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Device -&gt; Server</td>
+            <td><code>POST /api/v1/device-gateway/connect</code></td>
+            <td>Register or update the device</td>
+          </tr>
+          <tr>
+            <td>Device -&gt; Server</td>
+            <td><code>POST /api/v1/device-gateway/{device_uuid}/heartbeat</code></td>
+            <td>Tell the server the device is still alive</td>
+          </tr>
+          <tr>
+            <td>Device -&gt; Server</td>
+            <td><code>GET /api/v1/device-gateway/{device_uuid}/commands/next</code></td>
+            <td>Fetch the next pending command</td>
+          </tr>
+          <tr>
+            <td>Device -&gt; Server</td>
+            <td><code>POST /api/v1/device-gateway/{device_uuid}/command-ack</code></td>
+            <td>Report that a command was handled</td>
+          </tr>
+          <tr>
+            <td>Unit -&gt; Server</td>
+            <td><code>POST /api/v1/devices/{device_uuid}/commands</code></td>
+            <td>Send a command to the device through the server</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="flow">2. Required Flow</h2>
+    <div class="ok">
+      A REST device should follow this order:
+    </div>
+
+    <div class="flow-step"><strong>Step 1:</strong> Connect to the server</div>
+    <div class="flow-step"><strong>Step 2:</strong> Start sending heartbeat regularly</div>
+    <div class="flow-step"><strong>Step 3:</strong> Poll <code>commands/next</code> regularly</div>
+    <div class="flow-step"><strong>Step 4:</strong> When a command is received, apply it locally</div>
+    <div class="flow-step"><strong>Step 5:</strong> Send <code>command-ack</code> with the actual resulting state</div>
+
+    <h2 id="connect">3. Connect</h2>
+    <div class="card">
+      <p><strong>Endpoint</strong></p>
+      <pre>POST /api/v1/device-gateway/connect</pre>
+
+      <p><strong>Purpose</strong></p>
+      <p>Register one or more devices with the server.</p>
+
+      <p><strong>Minimum recommendation for a REST device</strong></p>
+      <pre class="json"><span class="key">{
+  "devices"</span>: <span class="key">{
+    "RVC001"</span>: <span class="key">{
+      "device_uuid"</span>: <span class="string">"RVC001"</span>,
+      <span class="key">"type"</span>: <span class="string">"robot_vacuum"</span>,
+      <span class="key">"transport"</span>: <span class="key">{
+        "mode"</span>: <span class="string">"rest"</span>,
+        <span class="key">"protocol"</span>: <span class="string">"rest"</span>
+      },
+      <span class="key">"capabilities"</span>: <span class="key">{
+        "cleaning"</span>: <span class="key">{
+          "type"</span>: <span class="string">"boolean"</span>,
+          <span class="key">"writable"</span>: <span class="boolean">true</span>
+        },
+        <span class="key">"return_to_base"</span>: <span class="key">{
+          "type"</span>: <span class="string">"boolean"</span>,
+          <span class="key">"writable"</span>: <span class="boolean">true</span>
+        }
+      },
+      <span class="key">"state"</span>: <span class="key">{
+        "cleaning"</span>: <span class="boolean">false</span>,
+        <span class="key">"return_to_base"</span>: <span class="boolean">false</span>
+      },
+      <span class="key">"status"</span>: <span class="key">{
+        "connected"</span>: <span class="boolean">true</span>
+      }
+    }
+  }
+}</pre>
+
+      <p><strong>Typical success response</strong></p>
+      <pre class="json"><span class="key">{
+  "message"</span>: <span class="string">"Devices connected"</span>,
+  <span class="key">"devices"</span>: <span class="key">{ ... }</span>,
+  <span class="key">"generated_uuids"</span>: <span class="key">{}</span>
+}</pre>
+    </div>
+
+    <h2 id="heartbeat">4. Heartbeat</h2>
+    <div class="card">
+      <p><strong>Endpoint</strong></p>
+      <pre>POST /api/v1/device-gateway/{device_uuid}/heartbeat</pre>
+
+      <p><strong>Purpose</strong></p>
+      <p>Tell the server that the device is still alive.</p>
+
+      <p><strong>Request body</strong></p>
+      <p>No JSON body is required in the current implementation.</p>
+
+      <p><strong>Recommended interval</strong></p>
+      <pre>Every 5 seconds</pre>
+
+      <p><strong>Typical success response</strong></p>
+      <pre class="json"><span class="key">{
+  "device_uuid"</span>: <span class="string">"RVC001"</span>,
+  <span class="key">"last_seen"</span>: <span class="string">"2026-03-30T10:47:07.150380+00:00"</span>,
+  <span class="key">"state"</span>: <span class="key">{
+    "cleaning"</span>: <span class="boolean">true</span>,
+    <span class="key">"return_to_base"</span>: <span class="boolean">false</span>
+  }
+}</pre>
+    </div>
+
+    <h2 id="poll">5. Poll Next Command</h2>
+    <div class="card">
+      <p><strong>Endpoint</strong></p>
+      <pre>GET /api/v1/device-gateway/{device_uuid}/commands/next</pre>
+
+      <p><strong>Purpose</strong></p>
+      <p>Ask the server if there is a pending command for this device.</p>
+
+      <p><strong>Recommended interval</strong></p>
+      <pre>Every 0.5-1.0 seconds</pre>
+
+      <p><strong>When a command exists</strong></p>
+      <pre class="json"><span class="key">{
+  "device_uuid"</span>: <span class="string">"RVC001"</span>,
+  <span class="key">"command"</span>: <span class="key">{
+    "type"</span>: <span class="string">"COMMAND"</span>,
+    <span class="key">"device_uuid"</span>: <span class="string">"RVC001"</span>,
+    <span class="key">"state"</span>: <span class="key">{
+      "cleaning"</span>: <span class="boolean">true</span>
+    }
+  }
+}</pre>
+
+      <p><strong>When no command exists</strong></p>
+      <pre class="json"><span class="key">{
+  "device_uuid"</span>: <span class="string">"RVC001"</span>,
+  <span class="key">"command"</span>: <span class="null">null</span>
+}</pre>
+    </div>
+
+    <h2 id="ack">6. Command Acknowledgement</h2>
+    <div class="card">
+      <p><strong>Endpoint</strong></p>
+      <pre>POST /api/v1/device-gateway/{device_uuid}/command-ack</pre>
+
+      <p><strong>Purpose</strong></p>
+      <p>Report that the command was processed and tell the server the actual resulting state.</p>
+
+      <p><strong>Request body</strong></p>
+      <pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"ok"</span>,
+  <span class="key">"reported_state"</span>: <span class="key">{
+    "cleaning"</span>: <span class="boolean">true</span>,
+    <span class="key">"return_to_base"</span>: <span class="boolean">false</span>
+  }
+}</pre>
+
+      <p><strong>Important</strong></p>
+      <div class="warning">
+        <code>reported_state</code> should contain the actual state after the command was applied locally.
+        The server uses this to update the stored device state.
+      </div>
+
+      <p><strong>Typical success response</strong></p>
+      <pre class="json"><span class="key">{
+  "message"</span>: <span class="string">"Command acknowledgement received"</span>,
+  <span class="key">"device_uuid"</span>: <span class="string">"RVC001"</span>,
+  <span class="key">"status"</span>: <span class="string">"ok"</span>,
+  <span class="key">"reported_state"</span>: <span class="key">{
+    "cleaning"</span>: <span class="boolean">true</span>,
+    <span class="key">"return_to_base"</span>: <span class="boolean">false</span>
+  }
+}</pre>
+    </div>
+
+    <h2 id="unit">7. Unit-side Command Flow</h2>
+    <div class="card">
+      <p>A Unit does <strong>not</strong> call the device-gateway routes.</p>
+      <p>The Unit still uses the normal server endpoint:</p>
+      <pre>POST /api/v1/devices/{device_uuid}/commands</pre>
+
+      <p><strong>Example</strong></p>
+      <pre class="json"><span class="key">{
+  "state"</span>: <span class="key">{
+    "cleaning"</span>: <span class="boolean">true</span>
+  }
+}</pre>
+
+      <div class="ok">
+        The server decides how to deliver the command.
+        For REST devices, the command is queued until the device fetches it through <code>commands/next</code>.
+      </div>
+    </div>
+
+    <h2 id="rules">8. Important Rules</h2>
+    <div class="note">
+      <ul>
+        <li>The device must send the same <code>device_uuid</code> consistently.</li>
+        <li>The device should connect first before sending heartbeat or polling commands.</li>
+        <li>The device should keep polling <code>commands/next</code> regularly while running.</li>
+        <li>The device should send <code>command-ack</code> after applying a command.</li>
+        <li>The device should treat <code>command: null</code> as “nothing to do right now”.</li>
+      </ul>
+    </div>
+
+  </div>
+  <script>
+    const body = document.body;
+    const toggleButton = document.getElementById("theme-toggle");
+    const storageKey = "rest-device-contract-theme";
+
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        body.classList.add("dark");
+        toggleButton.textContent = "Switch to Light Mode";
+      } else {
+        body.classList.remove("dark");
+        toggleButton.textContent = "Switch to Dark Mode";
+      }
+    }
+
+    const savedTheme = localStorage.getItem(storageKey) || "light";
+    applyTheme(savedTheme);
+
+    toggleButton.addEventListener("click", () => {
+      const nextTheme = body.classList.contains("dark") ? "light" : "dark";
+      localStorage.setItem(storageKey, nextTheme);
+      applyTheme(nextTheme);
+    });
+  </script>
+</body>
+</html>

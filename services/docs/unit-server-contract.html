@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unit - Server API Contract</title>
+  <style>
+    :root { --bg:#f4f6f8; --surface:#ffffff; --text:#1f2933; --line:#d9e2ec; --blue:#2563eb; --green:#16a34a; --yellow:#d97706; --red:#dc2626; --code-bg:#0f172a; --code-text:#e5e7eb; --json-key:#93c5fd; --json-string:#86efac; --json-number:#fca5a5; --json-bool:#fcd34d; --json-null:#c4b5fd; }
+    body.dark { --bg:#0f172a; --surface:#111827; --text:#e5e7eb; --line:#334155; --blue:#60a5fa; --green:#4ade80; --yellow:#f59e0b; --red:#f87171; --code-bg:#020617; --code-text:#e5e7eb; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; padding:40px 20px; background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif; line-height:1.6; }
+    .container { max-width:1100px; margin:0 auto; background:var(--surface); border-radius:14px; padding:40px; box-shadow:0 10px 30px rgba(0,0,0,.08); }
+    h1,h2,h3 { color:#102a43; } body.dark h1, body.dark h2, body.dark h3 { color:#f8fafc; }
+    h1 { margin-top:0; text-align:center; } h2 { margin-top:42px; padding-bottom:8px; border-bottom:2px solid #e4e7eb; }
+    .meta,.card,.note,.ok { margin-top:20px; padding:18px 20px; border-radius:10px; }
+    .meta,.card { background:#f9fafb; border-left:5px solid var(--blue);} body.dark .meta, body.dark .card { background:#172033; }
+    .note { background:#fff7ed; border-left:5px solid var(--yellow);} body.dark .note { background:#3b2206; }
+    .ok { background:#ecfdf3; border-left:5px solid var(--green);} body.dark .ok { background:#052e16; }
+    table { width:100%; border-collapse:collapse; margin-top:18px; }
+    th,td { border:1px solid var(--line); padding:12px; text-align:left; vertical-align:top; }
+    th { background:#f0f4f8; } body.dark th { background:#1e293b; }
+    code { background:#e5e7eb; padding:2px 6px; border-radius:4px; } body.dark code { background:#334155; color:#f8fafc; }
+    pre { background:var(--code-bg); color:var(--code-text); padding:18px; border-radius:10px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; }
+    .json .key { color:var(--json-key); } .json .string { color:var(--json-string); } .json .number { color:var(--json-number); } .json .boolean { color:var(--json-bool); } .json .null { color:var(--json-null); }
+    ul { padding-left:22px; } a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; } .toc ul { margin:0; } .toc li { margin:8px 0; }
+    .toolbar { display:flex; justify-content:flex-end; margin-bottom:16px; }
+    .theme-toggle { border:1px solid var(--line); background:var(--surface); color:var(--text); padding:10px 14px; border-radius:8px; cursor:pointer; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar"><button class="theme-toggle" id="theme-toggle" type="button">Switch to Dark Mode</button></div>
+    <h1>Interactive House - Updated Mobile/Web API Contract</h1>
+    <div class="card toc">
+      <h2>Table of Contents</h2>
+      <ul>
+        <li><a href="#section1">1. Introduction</a></li>
+        <li><a href="#section2">2. Base URL and versioning</a></li>
+        <li><a href="#section3">3. Authentication</a></li>
+        <li><a href="#section4">4. Devices</a></li>
+        <li><a href="#section5">5. Device status updates</a></li>
+        <li><a href="#section6">6. Commands</a></li>
+        <li><a href="#section7">7. State-specific routes</a></li>
+        <li><a href="#section8">8. Device deletion</a></li>
+        <li><a href="#section9">9. Technical constraints</a></li>
+        <li><a href="#section10">10. Route summary</a></li>
+      </ul>
+    </div>
+    <h2 id="section1">1. Introduction</h2>
+    <p>This API contract defines the communication between the Interactive House mobile/web client and the server. The purpose is to ensure that both teams implement compatible functionality and use consistent request and response formats.</p>
+    <p>This document specifies:</p>
+    <ul><li>Endpoints</li><li>Request/response formats</li><li>Validation and error responses</li><li>Device model</li><li>Command structure</li><li>Authentication behavior</li><li>Additional technical notes</li></ul>
+    <h2 id="section2">2. Base URL and versioning</h2>
+    <div class="card"><p>All implemented endpoints are versioned under the following prefix:</p><pre>/api/v1</pre><p>This means that earlier conceptual routes such as <code>/devices</code> are implemented as <code>/api/v1/devices</code>.</p></div>
+    <h2 id="section3">3. Authentication</h2>
+    <h3>3.1 Login</h3>
+    <div class="card"><p><strong>Endpoint</strong></p><pre>POST /api/v1/auth/login</pre><p><strong>Request Body</strong></p><pre class="json"><span class="key">{
+  "username"</span>: <span class="string">"user1"</span>,
+  <span class="key">"password"</span>: <span class="string">"password123"</span>
+}</pre><p><strong>Validation Rules (Confirmed)</strong></p><ul><li><code>username</code> is required</li><li><code>password</code> is required</li><li>Missing required fields return <code>400 Bad Request</code></li><li>Authentication failures return <code>401 Unauthorized</code></li><li>The API accepts username-based login in this contract</li></ul><p><strong>Success Response</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"success"</span>,
+  <span class="key">"token"</span>: <span class="string">"jwt_token_here"</span>,
+  <span class="key">"userId"</span>: <span class="string">"123"</span>
+}</pre><p><strong>Error Responses (Confirmed)</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"missing_fields"</span>,
+  <span class="key">"message"</span>: <span class="string">"username and password are required"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"invalid_credentials"</span>,
+  <span class="key">"message"</span>: <span class="string">"invalid username or password"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"server_error"</span>,
+  <span class="key">"message"</span>: <span class="string">"unexpected server error"</span>
+}</pre></div>
+    <h3>3.2 Registration</h3>
+    <div class="card"><p><strong>Endpoint</strong></p><pre>POST /api/v1/auth/register</pre><p><strong>Request Body</strong></p><pre class="json"><span class="key">{
+  "username"</span>: <span class="string">"user1"</span>,
+  <span class="key">"email"</span>: <span class="string">"user1@example.com"</span>,
+  <span class="key">"password"</span>: <span class="string">"password123"</span>
+}</pre><p><strong>Required Fields (Confirmed)</strong></p><ul><li><code>username</code></li><li><code>email</code></li><li><code>password</code></li></ul><p><strong>Validation Rules (Confirmed)</strong></p><ul><li>All required fields must be present</li><li><code>email</code> must have valid email format</li><li><code>username</code> must be unique</li><li><code>email</code> must be unique</li><li>Invalid input returns <code>400 Bad Request</code></li><li>Duplicate user data returns <code>409 Conflict</code></li></ul><p><strong>Success Response</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"success"</span>,
+  <span class="key">"userId"</span>: <span class="string">"123"</span>,
+  <span class="key">"token"</span>: <span class="string">"jwt_token_here"</span>
+}</pre><p><strong>Error Responses (Confirmed)</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"missing_fields"</span>,
+  <span class="key">"message"</span>: <span class="string">"username, email and password are required"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"invalid_email"</span>,
+  <span class="key">"message"</span>: <span class="string">"email format is invalid"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"username_exists"</span>,
+  <span class="key">"message"</span>: <span class="string">"username already exists"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"email_exists"</span>,
+  <span class="key">"message"</span>: <span class="string">"email already exists"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"server_error"</span>,
+  <span class="key">"message"</span>: <span class="string">"unexpected server error"</span>
+}</pre></div>
+    <h3>3.3 Token format</h3>
+    <div class="card"><p><strong>Confirmed token type</strong></p><pre>JWT</pre><p><strong>Usage</strong></p><pre>Authorization: Bearer &lt;token&gt;</pre></div>
+    <h2 id="section4">4. Devices</h2>
+    <h3>4.1 List Devices</h3>
+    <div class="card"><p><strong>Endpoint</strong></p><pre>GET /api/v1/devices</pre><p><strong>Example Response</strong></p><pre class="json"><span class="key">[
+  {
+    "device_uuid"</span>: <span class="string">"light-1"</span>,
+    <span class="key">"name"</span>: <span class="string">"Living Room Lamp"</span>,
+    <span class="key">"room"</span>: <span class="string">"living_room"</span>,
+    <span class="key">"type"</span>: <span class="string">"light"</span>,
+    <span class="key">"capabilities"</span>: <span class="key">{
+      "power"</span>: <span class="key">{
+        "type"</span>: <span class="string">"boolean"</span>,
+        <span class="key">"writable"</span>: <span class="boolean">true</span>
+      },
+      <span class="key">"brightness"</span>: <span class="key">{
+        "type"</span>: <span class="string">"integer"</span>,
+        <span class="key">"min"</span>: <span class="number">0</span>,
+        <span class="key">"max"</span>: <span class="number">100</span>,
+        <span class="key">"writable"</span>: <span class="boolean">true</span>
+      }
+    },
+    <span class="key">"state"</span>: <span class="key">{
+      "power"</span>: <span class="boolean">true</span>,
+      <span class="key">"brightness"</span>: <span class="number">80</span>
+    }
+  }
+]</pre><p><strong>Supported device types (Confirmed)</strong></p><ul><li><code>controller</code></li><li><code>light</code></li><li><code>fan</code></li><li>Other device types may be forwarded by the bridge without hardcoding, but these are the explicitly documented types from the device-side schema.</li></ul></div>
+    <h3>4.2 Get Single Device</h3>
+    <div class="card"><p><strong>Endpoint</strong></p><pre>GET /api/v1/devices/{device_uuid}</pre><p><strong>Example Response</strong></p><pre class="json"><span class="key">{
+  "device_uuid"</span>: <span class="string">"light-1"</span>,
+  <span class="key">"name"</span>: <span class="string">"Living Room Lamp"</span>,
+  <span class="key">"room"</span>: <span class="string">"living_room"</span>,
+  <span class="key">"type"</span>: <span class="string">"light"</span>,
+  <span class="key">"capabilities"</span>: <span class="key">{
+    "power"</span>: <span class="key">{
+      "type"</span>: <span class="string">"boolean"</span>,
+      <span class="key">"writable"</span>: <span class="boolean">true</span>
+    },
+    <span class="key">"brightness"</span>: <span class="key">{
+      "type"</span>: <span class="string">"integer"</span>,
+      <span class="key">"min"</span>: <span class="number">0</span>,
+      <span class="key">"max"</span>: <span class="number">100</span>,
+      <span class="key">"writable"</span>: <span class="boolean">true</span>
+    }
+  },
+  <span class="key">"state"</span>: <span class="key">{
+    "power"</span>: <span class="boolean">true</span>,
+    <span class="key">"brightness"</span>: <span class="number">80</span>
+  }
+}</pre><p><strong>Error Responses (Confirmed)</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"not_found"</span>,
+  <span class="key">"message"</span>: <span class="string">"device not found"</span>
+}</pre></div>
+    <h3>4.3 Device model</h3>
+    <div class="card"><p>The client-facing API uses a single <code>state</code> object.</p><table><thead><tr><th>Field</th><th>Description</th></tr></thead><tbody><tr><td><code>device_uuid</code></td><td>Unique identifier of the device</td></tr><tr><td><code>name</code></td><td>Display name shown in the client</td></tr><tr><td><code>room</code></td><td>Optional room/category location</td></tr><tr><td><code>type</code></td><td>Device type, for example <code>controller</code>, <code>light</code> or <code>fan</code></td></tr><tr><td><code>capabilities</code></td><td>Object describing which controls can be rendered by the client</td></tr><tr><td><code>state</code></td><td>Current state of the device</td></tr></tbody></table></div>
+    <h3>4.4 Capabilities format</h3>
+    <div class="card"><p><strong>Capabilities supported according to the device-side schema</strong></p><table><thead><tr><th>Capability</th><th>Type</th><th>Writable</th><th>Notes</th></tr></thead><tbody><tr><td><code>power</code></td><td><code>boolean</code></td><td>Yes</td><td>Used by light devices</td></tr><tr><td><code>brightness</code></td><td><code>integer</code></td><td>Yes</td><td>Range 0-100. Device-side schema models this as a range capability.</td></tr><tr><td><code>speed</code></td><td><code>integer</code></td><td>Yes</td><td>Used in command examples for fan devices</td></tr><tr><td><code>doorbell</code></td><td><code>event</code></td><td>No</td><td>Example event capability from the device-side schema</td></tr></tbody></table><p><strong>Client-facing format example</strong></p><pre class="json"><span class="key">{
+  "capabilities"</span>: <span class="key">{
+    "power"</span>: <span class="key">{
+      "type"</span>: <span class="string">"boolean"</span>,
+      <span class="key">"writable"</span>: <span class="boolean">true</span>
+    },
+    <span class="key">"brightness"</span>: <span class="key">{
+      "type"</span>: <span class="string">"integer"</span>,
+      <span class="key">"min"</span>: <span class="number">0</span>,
+      <span class="key">"max"</span>: <span class="number">100</span>,
+      <span class="key">"writable"</span>: <span class="boolean">true</span>
+    }
+  }
+}</pre></div>
+    <h3>4.5 State format</h3>
+    <div class="card"><p><strong>Example</strong></p><pre class="json"><span class="key">{
+  "state"</span>: <span class="key">{
+    "power"</span>: <span class="boolean">true</span>,
+    <span class="key">"brightness"</span>: <span class="number">80</span>
+  }
+}</pre><p><strong>Confirmed behavior</strong></p><ul><li>The API returns one <code>state</code> object per device</li><li>State keys depend on the device type and supported capabilities</li><li>If a device does not support a field, that field is omitted rather than returned as <code>null</code></li></ul></div>
+    <h2 id="section5">5. Device status updates</h2>
+    <div class="card"><p><strong>Confirmed mechanism</strong></p><pre>Polling</pre><p>For the initial version of the client contract, the server will not implement WebSocket, Server-Sent Events (SSE) or MQTT bridge integration for real-time updates. Instead, clients should poll the device endpoints to fetch the latest state.</p><p>Clients can still fetch updates using:</p><ul><li><code>GET /api/v1/devices</code></li><li><code>GET /api/v1/devices/{device_uuid}</code></li></ul><p><strong>Recommended interval</strong></p><pre>5 seconds (only if polling is used)</pre><div class="note">WebSocket, SSE and MQTT bridge integration remain possible future options, but they are not part of the confirmed current client contract.</div></div>
+    <h2 id="section6">6. Commands</h2>
+    <h3>6.1 Send Command to Device</h3>
+    <div class="card"><p><strong>Endpoint</strong></p><pre>POST /api/v1/devices/{device_uuid}/commands</pre><p><strong>Request Body</strong></p><pre class="json"><span class="key">{
+  "state"</span>: <span class="key">{
+    "power"</span>: <span class="boolean">true</span>
+  }
+}</pre><p><strong>Required fields (Confirmed)</strong></p><ul><li><code>device_uuid</code> in the route path</li><li><code>state</code> in the JSON body</li><li>The body must contain at least one state field to update</li></ul><p><strong>Example Success Response</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"success"</span>,
+  <span class="key">"state"</span>: <span class="key">{
+    "power"</span>: <span class="boolean">true</span>
+  }
+}</pre><p><strong>Error Responses (Confirmed)</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"missing_state"</span>,
+  <span class="key">"message"</span>: <span class="string">"state is required"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"not_found"</span>,
+  <span class="key">"message"</span>: <span class="string">"device not found"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"unsupported_capability"</span>,
+  <span class="key">"message"</span>: <span class="string">"device does not support one or more requested state fields"</span>
+}</pre><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"invalid_state"</span>,
+  <span class="key">"message"</span>: <span class="string">"one or more state values are invalid"</span>
+}</pre></div>
+    <div class="note">Earlier draft examples showed the command body as only <code>{ "power": true }</code>. This updated version uses a wrapped <code>state</code> object to make the command format explicit and consistent.</div>
+    <h2 id="section7">7. State-specific routes</h2>
+    <div class="card"><p>The implementation also supports the following state-specific routes:</p><table><thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr></thead><tbody><tr><td>GET</td><td><code>/api/v1/devices/{device_uuid}/state</code></td><td>Get only the state object for one device</td></tr><tr><td>PATCH</td><td><code>/api/v1/devices/{device_uuid}/state</code></td><td>Update device state directly</td></tr></tbody></table><p><strong>PATCH Request Body</strong></p><pre class="json"><span class="key">{
+  "state"</span>: <span class="key">{
+    "power"</span>: <span class="boolean">true</span>,
+    <span class="key">"brightness"</span>: <span class="number">20</span>
+  }
+}</pre><p><strong>PATCH Success Response</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"success"</span>,
+  <span class="key">"state"</span>: <span class="key">{
+    "power"</span>: <span class="boolean">false</span>,
+    <span class="key">"brightness"</span>: <span class="number">20</span>
+  }
+}</pre></div>
+    <h2 id="section8">8. Device deletion</h2>
+    <div class="card"><p><strong>Endpoint</strong></p><pre>DELETE /api/v1/devices/{device_uuid}</pre><p>This route is implementation-specific and is not required by the original unit contract, but is supported by the server API.</p><p><strong>Error Responses (Confirmed)</strong></p><pre class="json"><span class="key">{
+  "status"</span>: <span class="string">"error"</span>,
+  <span class="key">"error"</span>: <span class="string">"not_found"</span>,
+  <span class="key">"message"</span>: <span class="string">"device not found"</span>
+}</pre></div>
+    <h2 id="section9">9. Technical constraints</h2>
+    <div class="card"><p><strong>Timeout limits (Confirmed)</strong></p><ul><li>Normal API requests should complete quickly under standard local-network conditions</li><li>Client applications should use a practical request timeout around 5-10 seconds</li></ul><p><strong>Rate limits (Confirmed)</strong></p><ul><li>No explicit rate limiting is defined in this contract version</li><li>Clients should still avoid excessive polling beyond the recommended interval</li></ul><p><strong>Required headers</strong></p><p>Authorization: Bearer &lt;token&gt; is not required for login or registration api</p><pre>Authorization: Bearer &lt;token&gt;
+Content-Type: application/json</pre></div>
+    <h2 id="section10">10. Route summary</h2>
+    <div class="card"><table><thead><tr><th>Method</th><th>Endpoint</th><th>Required by original contract</th></tr></thead><tbody><tr><td>GET</td><td><code>/api/v1/devices</code></td><td>Yes</td></tr><tr><td>GET</td><td><code>/api/v1/devices/{device_uuid}</code></td><td>Yes</td></tr><tr><td>POST</td><td><code>/api/v1/devices/{device_uuid}/commands</code></td><td>Yes</td></tr><tr><td>GET</td><td><code>/api/v1/devices/{device_uuid}/state</code></td><td>No</td></tr><tr><td>PATCH</td><td><code>/api/v1/devices/{device_uuid}/state</code></td><td>No</td></tr><tr><td>DELETE</td><td><code>/api/v1/devices/{device_uuid}</code></td><td>No</td></tr></tbody></table></div>
+  </div>
+  <script>
+    const body = document.body; const toggleButton = document.getElementById("theme-toggle"); const storageKey = "unit-server-contract-theme";
+    function applyTheme(theme){ if(theme==="dark"){ body.classList.add("dark"); toggleButton.textContent="Switch to Light Mode"; } else { body.classList.remove("dark"); toggleButton.textContent="Switch to Dark Mode"; } }
+    const savedTheme = localStorage.getItem(storageKey) || "light"; applyTheme(savedTheme);
+    toggleButton.addEventListener("click",()=>{ const nextTheme = body.classList.contains("dark") ? "light" : "dark"; localStorage.setItem(storageKey,nextTheme); applyTheme(nextTheme); });
+  </script>
+</body>
+</html>
