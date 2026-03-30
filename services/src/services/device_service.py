@@ -94,6 +94,36 @@ def heartbeat(device_uuid: str):
     return device_store.update_last_seen(device_uuid, now)
 
 
+def get_next_command(device_uuid: str) -> Dict[str, Any]:
+    device = device_store.get_device(device_uuid)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    command = device_store.pop_next_command(device_uuid)
+    return {
+        "device_uuid": device_uuid,
+        "command": command,
+    }
+
+
+def handle_command_ack(device_uuid: str, status: str, reported_state: Dict[str, Any]) -> Dict[str, Any]:
+    device = device_store.update_device_state(
+        device_uuid,
+        reported_state,
+        status={"last_command_status": status},
+    )
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    return {
+        "message": "Command acknowledgement received",
+        "device_uuid": device_uuid,
+        "status": status,
+        "reported_state": reported_state,
+    }
+
+
 async def post_command(device_uuid: str, payload: CommandPayload) -> Dict[str, Any]:
     device = device_store.get_device(device_uuid)
 
@@ -106,11 +136,22 @@ async def post_command(device_uuid: str, payload: CommandPayload) -> Dict[str, A
         "state": payload.state,
     }
 
-    sent = await dispatch_command(command_payload)
+    transport = device.get("transport", {})
+    transport_mode = transport.get("mode")
+    transport_protocol = transport.get("protocol")
+
+    if transport_mode == "rest" or transport_protocol == "rest":
+        device_store.enqueue_command(device_uuid, command_payload)
+        sent = True
+        delivery = "queued"
+    else:
+        sent = await dispatch_command(command_payload)
+        delivery = "bridge"
 
     return {
         "message": "Command dispatched",
         "device_uuid": device_uuid,
         "sent": sent,
+        "delivery": delivery,
         "payload": command_payload,
     }

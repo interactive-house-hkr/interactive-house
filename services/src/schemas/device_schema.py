@@ -19,3 +19,8 @@ class ConnectDeviceBody(BaseModel):
 
 class CommandPayload(BaseModel):
     state: Dict[str, Any]
+
+
+class CommandAckPayload(BaseModel):
+    status: str = "ok"
+    reported_state: Dict[str, Any] = Field(default_factory=dict)
