@@ -1,6 +1,6 @@
 import json
-from devices.RVC.RVC import RVC
-from devices.RVC.rvc_protocol_adapter import RVCProtocolAdapter
+from RVC import RVC
+from rvc_protocol_adapter import RVCProtocolAdapter
 
 
 def pretty_print(title: str, payload: dict):
@@ -12,7 +12,7 @@ def main():
     rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)
     adapter = RVCProtocolAdapter(rvc)
 
-    pretty_print("CONNECT", adapter.build_connect_message())
+    pretty_print("CONNECT", adapter.build_initial_connect_message())
     pretty_print("HEARTBEAT", adapter.build_heartbeat_message())
 
     command_start = {
