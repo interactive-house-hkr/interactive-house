@@ -20,7 +20,7 @@ class RVCVisualizer:
         self.scatter = self.ax.scatter([], [], color='red', s=100, label=rvc_name)
         self.ax.legend()
 
-        plt.ion()
+        plt.ion()  # Turn on interactive mode
         plt.show(block=False)
 
     def update_plot(self, position, rvc_name):

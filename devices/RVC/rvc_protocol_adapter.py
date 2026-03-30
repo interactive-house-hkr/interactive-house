@@ -61,26 +61,11 @@ class RVCProtocolAdapter:
             "last_seen": self._timestamp()
         }
 
-    def build_initial_connect_message(self) -> dict:
-        return {
-            "type": "CONNECT",
-            "devices": {
-                self.rvc.device_id: self.build_device_entry()
-            }
-        }
-    
     def build_connect_message(self) -> dict:
         return {
             "type": "CONNECT",
             "devices": {
-                self.rvc.name: {
-                    "device_uuid": self.rvc.device_id,
-                    "status": {
-                        "connected": True
-                    },
-                    "state": self.rvc.get_reported_state(),
-                    "last_seen": self._timestamp()
-                }
+                self.rvc.device_id: self.build_device_entry()
             }
         }
 
@@ -105,7 +90,7 @@ class RVCProtocolAdapter:
 
     def apply_command(self, payload: dict) -> dict:
         """
-        Accepts a COMMAND message and applies it's state to the local RVC.
+        Accepts a COMMAND message and applies its state to the local RVC.
         Returns a COMMAND_ACK payload.
         """
         if payload.get("type") != "COMMAND":
@@ -128,12 +113,14 @@ class RVCProtocolAdapter:
             self.rvc.dock()
             return
 
+        # Pause / resume logic
         if "paused" in state:
             if state["paused"] is True:
                 self.rvc.pause()
             elif state["paused"] is False and self.rvc.status == "paused":
                 self.rvc.resume()
 
+        # Cleaning on / off
         if "cleaning" in state:
             if state["cleaning"] is True:
                 self.rvc.start()
