@@ -52,8 +52,11 @@ def handle_command_ack(device_uuid: str, status: str, reported_state: dict):
     """
     try:
         logger.info(f"Updating device {device_uuid} with reported state: {reported_state}")
-        # TODO: Implement state update in service layer
-        return {"device_uuid": device_uuid, "status": status}
+        return device_service.handle_command_ack(
+            device_uuid=device_uuid,
+            status=status,
+            reported_state=reported_state,
+        )
     except Exception as e:
         logger.error(f"Failed to handle command ACK: {e}")
         raise
@@ -65,6 +68,10 @@ def handle_command_ack(device_uuid: str, status: str, reported_state: dict):
 
 def heartbeat(device_uuid: str):
     return device_service.heartbeat(device_uuid)
+
+
+def get_next_command(device_uuid: str):
+    return device_service.get_next_command(device_uuid)
 
 
 # -------------------------
