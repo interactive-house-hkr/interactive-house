@@ -96,3 +96,36 @@ def pop_next_command(device_uuid: str) -> Dict[str, Any] | None:
     if not queue:
         return None
     return queue.pop(0)
+
+def mark_stale_devices_offline(threshold_seconds: int = 30) -> list[str]:
+    """
+    Checks all devices and marks them as offline (connected=False) 
+    if their last_seen is older than threshold_seconds.
+    Returns a list of device_uuids that were marked offline.
+    """
+    now = datetime.now(timezone.utc)
+    marked_offline = []
+    
+    for device_uuid, device in _DEVICES.items():
+        # Skip if already offline
+        status = device.get("status", {})
+        if not status.get("connected", False):
+            continue
+            
+        last_seen_str = device.get("last_seen")
+        if not last_seen_str:
+            continue
+            
+        try:
+            last_seen_dt = datetime.fromisoformat(last_seen_str)
+            diff = (now - last_seen_dt).total_seconds()
+            
+            if diff > threshold_seconds:
+                # Mark as offline
+                status["connected"] = False
+                device["status"] = status
+                marked_offline.append(device_uuid)
+        except ValueError:
+            pass
+            
+    return marked_offline
