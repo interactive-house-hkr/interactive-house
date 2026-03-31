@@ -1,76 +1,99 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+from services.src.firebase.firebase_client import get_ref
 
-# In-memory store (dev/test)
-_DEVICES: Dict[str, Dict[str, Any]] = {}
-_PENDING_COMMANDS: Dict[str, list[Dict[str, Any]]] = {}
+
+DEVICES_PATH = "devices"
+PENDING_COMMANDS_PATH = "pending_commands"
+
+
+def _devices_ref():
+    return get_ref(DEVICES_PATH)
+
+
+def _device_ref(device_uuid: str):
+    return get_ref(f"{DEVICES_PATH}/{device_uuid}")
+
+
+def _pending_commands_ref(device_uuid: str):
+    return get_ref(f"{PENDING_COMMANDS_PATH}/{device_uuid}")
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _build_device(device_uuid: str, data: Dict[str, Any], existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    existing = existing or {}
+
+    status = existing.get("status", {}).copy()
+    status.update(data.get("status", {}))
+    status["connected"] = True
+
+    return {
+        "device_uuid": device_uuid,
+        "type": data.get("type", existing.get("type")),
+        "transport": data.get("transport", existing.get("transport", {})),
+        "capabilities": data.get("capabilities", existing.get("capabilities", {})),
+        "state": data.get("state", existing.get("state", {})),
+        "status": status,
+        "last_seen": data.get("last_seen") or existing.get("last_seen") or _now_iso(),
+    }
 
 
 def get_device(device_uuid: str) -> Dict[str, Any] | None:
-    return _DEVICES.get(device_uuid)
+    return _device_ref(device_uuid).get()
 
 
 def register_device(device_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    status = data.get("status", {})
-    status["connected"] = True
-
-    device = {
-        "device_uuid": device_uuid,
-        "type": data.get("type"),
-        "transport": data.get("transport", {}),
-        "capabilities": data.get("capabilities", {}),
-        "state": data.get("state", {}),
-        "status": status,
-        "last_seen": data.get("last_seen") or datetime.now(timezone.utc).isoformat(),
-    }
-
-    _DEVICES[device_uuid] = device
-    _PENDING_COMMANDS.setdefault(device_uuid, [])
+    device = _build_device(device_uuid, data)
+    _device_ref(device_uuid).set(device)
     return device
 
 
 def update_device(device_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    existing = _DEVICES.get(device_uuid)
+    existing = get_device(device_uuid)
 
     if not existing:
         raise ValueError("Device not found")
 
-    existing["type"] = data.get("type", existing.get("type"))
-    existing["transport"] = data.get("transport", existing.get("transport", {}))
-    existing["capabilities"] = data.get("capabilities", existing.get("capabilities", {}))
-    existing["state"] = data.get("state", existing.get("state", {}))
-
-    existing_status = existing.get("status", {})
-    incoming_status = data.get("status", {})
-    existing_status.update(incoming_status)
-    existing_status["connected"] = True
-    existing["status"] = existing_status
-
-    existing["last_seen"] = data.get("last_seen") or datetime.now(timezone.utc).isoformat()
-    _PENDING_COMMANDS.setdefault(device_uuid, [])
-
-    return existing
+    updated = _build_device(device_uuid, data, existing=existing)
+    _device_ref(device_uuid).set(updated)
+    return updated
 
 
 def list_devices() -> list[Dict[str, Any]]:
-    return list(_DEVICES.values())
+    devices = _devices_ref().get() or {}
+    return list(devices.values())
 
-def delete_device(device_uuid: str)-> Dict[str, Any] | None: 
-    _PENDING_COMMANDS.pop(device_uuid, None)
-    return _DEVICES.pop(device_uuid, None)
+
+def delete_device(device_uuid: str) -> Dict[str, Any] | None:
+    device = get_device(device_uuid)
+    if not device:
+        return None
+
+    _pending_commands_ref(device_uuid).delete()
+    _device_ref(device_uuid).delete()
+    return device
+
 
 def update_last_seen(device_uuid: str, timestamp: datetime) -> Dict[str, Any]:
-    device = _DEVICES.get(device_uuid)
+    device = get_device(device_uuid)
     if not device:
         return {"error": "device not found", "device_uuid": device_uuid}
 
     device["last_seen"] = timestamp.isoformat()
+    _device_ref(device_uuid).set(device)
     return device
 
 
-def update_device_state(device_uuid: str, reported_state: Dict[str, Any], status: Optional[Dict[str, Any]] = None) -> Dict[str, Any] | None:
-    device = _DEVICES.get(device_uuid)
+def update_device_state(
+    device_uuid: str,
+    reported_state: Dict[str, Any],
+    status: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any] | None:
+    device = get_device(device_uuid)
     if not device:
         return None
 
@@ -83,16 +106,18 @@ def update_device_state(device_uuid: str, reported_state: Dict[str, Any], status
         current_status.update(status)
     current_status["connected"] = True
     device["status"] = current_status
-    device["last_seen"] = datetime.now(timezone.utc).isoformat()
+    device["last_seen"] = _now_iso()
+
+    _device_ref(device_uuid).set(device)
     return device
 
 
 def enqueue_command(device_uuid: str, payload: Dict[str, Any]) -> None:
-    _PENDING_COMMANDS.setdefault(device_uuid, []).append(payload)
+    _pending_commands_ref(device_uuid).push(payload)
 
 
 def pop_next_command(device_uuid: str) -> Dict[str, Any] | None:
-    queue = _PENDING_COMMANDS.setdefault(device_uuid, [])
+    queue = _pending_commands_ref(device_uuid).get() or {}
     if not queue:
         return None
     return queue.pop(0)
@@ -129,3 +154,5 @@ def mark_stale_devices_offline(threshold_seconds: int = 30) -> list[str]:
             pass
             
     return marked_offline
+
+    
