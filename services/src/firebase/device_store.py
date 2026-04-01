@@ -120,7 +120,12 @@ def pop_next_command(device_uuid: str) -> Dict[str, Any] | None:
     queue = _pending_commands_ref(device_uuid).get() or {}
     if not queue:
         return None
-    return queue.pop(0)
+
+    next_key = sorted(queue.keys())[0]
+    next_command = queue[next_key]
+    _pending_commands_ref(device_uuid).child(next_key).delete()
+    return next_command
+
 
 def mark_stale_devices_offline(threshold_seconds: int = 30) -> list[str]:
     """
