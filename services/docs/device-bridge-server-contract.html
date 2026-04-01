@@ -11,7 +11,8 @@
     body { margin:0; padding:40px 20px; background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif; line-height:1.6; }
     .container { max-width:1100px; margin:0 auto; background:var(--surface); border-radius:14px; padding:40px; box-shadow:0 10px 30px rgba(0,0,0,.08); }
     h1,h2,h3 { color:#102a43; } body.dark h1, body.dark h2, body.dark h3 { color:#f8fafc; }
-    h1 { margin-top:0; text-align:center; } h2 { margin-top:40px; padding-bottom:8px; border-bottom:2px solid #e4e7eb; }
+    h1 { margin-top:0; text-align:center; }
+    h2 { margin-top:40px; padding-bottom:8px; border-bottom:2px solid #e4e7eb; }
     .card,.note,.warning { margin-top:20px; padding:18px 20px; border-radius:10px; }
     .card { background:#f9fafb; border-left:5px solid var(--blue);} body.dark .card { background:#172033; }
     .warning { background:#fff7ed; border-left:5px solid var(--yellow);} body.dark .warning { background:#3b2206; }
@@ -32,224 +33,202 @@
   <div class="container">
     <div class="toolbar"><button class="theme-toggle" id="theme-toggle" type="button">Switch to Dark Mode</button></div>
     <h1>Device JSON Communication Format</h1>
-    <div class="card">This document describes the JSON formats used between devices, the bridge and the server. Devices send information about themselves and their capabilities. The bridge should not hardcode device types or capabilities. It should simply forward and process the data.</div>
+
+    <div class="card">
+      This document describes the JSON formats used between devices, the bridge and the server.
+      Devices send information about themselves and their capabilities. The bridge should not
+      hardcode device types or capabilities; it simply forwards and processes the data.
+    </div>
+
     <div class="card toc">
       <h2>Table of Contents</h2>
       <ul>
         <li><a href="#section1">1. CONNECT message (Device -&gt; Bridge)</a></li>
         <li><a href="#section2">2. Device Structure</a></li>
         <li><a href="#section3">3. HEARTBEAT message (Device -&gt; Bridge)</a></li>
-        <li><a href="#section4">4. CONNECT_ACK message (Bridge -&gt; Device)</a></li>
-        <li><a href="#section5">5. COMMAND message (Server/Bridge -&gt; Device)</a></li>
-        <li><a href="#section6">6. COMMAND_ACK message (Device -&gt; Bridge)</a></li>
-        <li><a href="#section7">7. Transport Examples</a></li>
-        <li><a href="#section8">8. Capability Examples</a></li>
-        <li><a href="#section9">9. Status Example</a></li>
-        <li><a href="#section10">10. Multiple Controllers</a></li>
+        <li><a href="#section4">4. COMMAND message (Server/Bridge -&gt; Device)</a></li>
+        <li><a href="#section5">5. COMMAND_ACK message (Device -&gt; Bridge)</a></li>
+        <li><a href="#section6">6. Capability Examples</a></li>
+        <li><a href="#section7">7. Status Example</a></li>
       </ul>
     </div>
+
     <h2 id="section1">1. CONNECT message (Device -&gt; Bridge)</h2>
     <div class="card">
-      <p>This message is sent when a device or controller connects and wants to register or update one or more devices.</p>
-      <p>If the device has been registered before, it can usually send its <code>device_uuid</code> together with any changed fields instead of resending all static data every time.</p>
-      <p><strong>Required fields</strong></p>
-      <ul><li><code>type</code> must be <code>"CONNECT"</code></li><li><code>devices</code> contains all devices sent by the controller/device</li></ul>
-<pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"CONNECT"</span>,
-  <span class="key">"devices"</span>: <span class="key">{
-    "arduino-1"</span>: <span class="key">{
-      "device_uuid"</span>: <span class="string">"arduino-1"</span>,
-      <span class="key">"type"</span>: <span class="string">"controller"</span>,
-      <span class="key">"transport"</span>: <span class="key">{
-        "mode"</span>: <span class="string">"direct"</span>,
-        <span class="key">"protocol"</span>: <span class="string">"ble"</span>,
-        <span class="key">"address"</span>: <span class="string">"AA:BB:CC:DD:EE"</span>,
-        <span class="key">"service"</span>: <span class="string">"HMSoft"</span>
-      },
-      <span class="key">"status"</span>: <span class="key">{
-        "connected"</span>: <span class="boolean">true</span>
-      },
-      <span class="key">"last_seen"</span>: <span class="string">"2026-03-13T20:15:00Z"</span>
-    },
-    <span class="key">"light-1"</span>: <span class="key">{
-      "device_uuid"</span>: <span class="string">"light-1"</span>,
-      <span class="key">"type"</span>: <span class="string">"light"</span>,
-      <span class="key">"transport"</span>: <span class="key">{
-        "mode"</span>: <span class="string">"via_controller"</span>,
-        <span class="key">"controller_uuid"</span>: <span class="string">"arduino-1"</span>,
-        <span class="key">"port"</span>: <span class="number">13</span>
-      },
-      <span class="key">"capabilities"</span>: <span class="key">{
-        "power"</span>: <span class="key">{
-          "type"</span>: <span class="string">"boolean"</span>,
-          <span class="key">"writable"</span>: <span class="boolean">true</span>
+      <p>
+        This message is sent when a device connects and wants to register
+        or update a device.
+      </p>
+
+      <p>
+        This message is sent once per device. If an Arduino controls multiple devices,
+        it should send multiple small CONNECT messages instead of one large payload.
+      </p>
+<pre>{
+  "type": "CONNECT",
+  "devices": {
+    "light-1": {
+      "device_uuid": "light-1",
+      "type": "light",
+      "capabilities": {
+        "power": {
+          "type": "boolean",
+          "writable": true
         }
       },
-      <span class="key">"state"</span>: <span class="key">{
-        "power"</span>: <span class="boolean">true</span>
-      },
-      <span class="key">"last_seen"</span>: <span class="string">"2026-03-13T20:15:00Z"</span>
-    },
-    <span class="key">"lamp-2"</span>: <span class="key">{
-      "device_uuid"</span>: <span class="string">"lamp-2"</span>,
-      <span class="key">"type"</span>: <span class="string">"light"</span>,
-      <span class="key">"transport"</span>: <span class="key">{
-        "mode"</span>: <span class="string">"direct"</span>,
-        <span class="key">"protocol"</span>: <span class="string">"wifi"</span>,
-        <span class="key">"endpoint"</span>: <span class="string">"192.168.1.45"</span>
-      },
-      <span class="key">"capabilities"</span>: <span class="key">{
-        "power"</span>: <span class="key">{
-          "type"</span>: <span class="string">"boolean"</span>,
-          <span class="key">"writable"</span>: <span class="boolean">true</span>
-        },
-        <span class="key">"brightness"</span>: <span class="key">{
-          "type"</span>: <span class="string">"integer"</span>,
-          <span class="key">"min"</span>: <span class="number">0</span>,
-          <span class="key">"max"</span>: <span class="number">100</span>,
-          <span class="key">"writable"</span>: <span class="boolean">true</span>
-        }
-      },
-      <span class="key">"state"</span>: <span class="key">{
-        "power"</span>: <span class="boolean">false</span>,
-        <span class="key">"brightness"</span>: <span class="number">0</span>
-      },
-      <span class="key">"last_seen"</span>: <span class="string">"2026-03-13T20:15:00Z"</span>
-    }
-  }
-}</pre>
-      <p><strong>Example of a smaller CONNECT payload for an already registered device</strong></p>
-<pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"CONNECT"</span>,
-  <span class="key">"devices"</span>: <span class="key">{
-    "arduino-1"</span>: <span class="key">{
-      "device_uuid"</span>: <span class="string">"arduino-1"</span>,
-      <span class="key">"status"</span>: <span class="key">{
-        "connected"</span>: <span class="boolean">true</span>
-      },
-      <span class="key">"last_seen"</span>: <span class="string">"2026-03-13T20:20:00Z"</span>
-    },
-    <span class="key">"light-1"</span>: <span class="key">{
-      "device_uuid"</span>: <span class="string">"light-1"</span>,
-      <span class="key">"state"</span>: <span class="key">{
-        "power"</span>: <span class="boolean">false</span>
-      },
-      <span class="key">"last_seen"</span>: <span class="string">"2026-03-13T20:20:00Z"</span>
+      "state": {
+        "power": true
+      }
     }
   }
 }</pre>
     </div>
+
     <h2 id="section2">2. Device Structure</h2>
-    <div class="card"><p>Each entry inside <code>devices</code> represents one device.</p><ul><li><code>device_uuid</code> - unique identifier</li><li><code>type</code> - device type (controller, light, fan, etc)</li><li><code>transport</code> - how the device is reached</li><li><code>capabilities</code> - object of supported features keyed by capability name</li><li><code>state</code> - current state of the device</li><li><code>status</code> - connection status</li><li><code>last_seen</code> - timestamp of last communication</li></ul></div>
+    <div class="card">
+      <p>Each entry inside <code>devices</code> represents one device.</p>
+      <ul>
+        <li><code>device_uuid</code> - unique identifier</li>
+        <li><code>type</code> - device type (light, fan, door, etc)</li>
+        <li><code>capabilities</code> - object of supported features keyed by capability name</li>
+        <li><code>state</code> - current state of the device</li>
+        <li><code>status</code> - connection status</li>
+        <li><code>last_seen</code> - timestamp of last communication</li>
+      </ul>
+    </div>
+
     <h2 id="section3">3. HEARTBEAT message (Device -&gt; Bridge)</h2>
-    <div class="card"><p>Heartbeat messages inform the server that a device is still alive.</p><pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"HEARTBEAT"</span>,
-  <span class="key">"device_uuid"</span>: <span class="string">"arduino-1"</span>
-}</pre></div>
-    <h2 id="section4">4. CONNECT_ACK message (Bridge -&gt; Device)</h2>
-    <div class="card"><p>Sent back to the device after a successful CONNECT request.</p><pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"CONNECT_ACK"</span>,
-  <span class="key">"message"</span>: <span class="string">"Devices connected"</span>,
-  <span class="key">"devices"</span>: <span class="key">{}</span>,
-  <span class="key">"generated_uuids"</span>: <span class="key">{}</span>,
-  <span class="key">"server_time"</span>: <span class="string">"2026-03-13T20:15:00Z"</span>
-}</pre></div>
-    <h2 id="section5">5. COMMAND message (Server/Bridge -&gt; Device)</h2>
-    <div class="card"><p>This message is sent to a device when the server wants it to update its state.</p><p><strong>Required fields</strong></p><ul><li><code>type</code> must be <code>"COMMAND"</code></li><li><code>device_uuid</code> identifies which device should execute the command</li><li><code>state</code> contains the state the device should change to</li></ul><pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"COMMAND"</span>,
-  <span class="key">"device_uuid"</span>: <span class="string">"light-1"</span>,
-  <span class="key">"state"</span>: <span class="key">{
-    "power"</span>: <span class="boolean">true</span>
+    <div class="card">
+      <p>Heartbeat messages inform the server that a device is still alive.</p>
+      <pre>{
+  "type": "HEARTBEAT",
+  "device_uuid": "arduino-1"
+}</pre>
+    </div>
+
+    <h2 id="section4">4. COMMAND message (Server/Bridge -&gt; Device)</h2>
+    <div class="card">
+      <p>This message is sent to a device when the server wants it to update its state.</p>
+      <p><strong>Required fields</strong></p>
+      <ul>
+        <li><code>type</code> must be <code>"COMMAND"</code></li>
+        <li><code>device_uuid</code> identifies which device should execute the command</li>
+        <li><code>state</code> contains the state the device should change to</li>
+      </ul>
+      <pre>{
+  "type": "COMMAND",
+  "device_uuid": "light-1",
+  "state": {
+    "power": true
   }
-}</pre><p><strong>Another example</strong></p><pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"COMMAND"</span>,
-  <span class="key">"device_uuid"</span>: <span class="string">"fan-1"</span>,
-  <span class="key">"state"</span>: <span class="key">{
-    "speed"</span>: <span class="number">3</span>
+}</pre>
+      <p><strong>Another example</strong></p>
+      <pre>{
+  "type": "COMMAND",
+  "device_uuid": "fan-1",
+  "state": {
+    "speed": 3
   }
-}</pre></div>
-    <h2 id="section6">6. COMMAND_ACK message (Device -&gt; Bridge)</h2>
-    <div class="card"><p>Sent back by the device after it has processed a command.</p><p><strong>Required fields</strong></p><ul><li><code>type</code> must be <code>"COMMAND_ACK"</code></li><li><code>device_uuid</code> identifies which device processed the command</li><li><code>status</code> shows whether execution succeeded, failed or was partial</li><li><code>state</code> shows the actual state after execution</li></ul><pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"COMMAND_ACK"</span>,
-  <span class="key">"device_uuid"</span>: <span class="string">"light-1"</span>,
-  <span class="key">"status"</span>: <span class="string">"ok"</span>,
-  <span class="key">"state"</span>: <span class="key">{
-    "power"</span>: <span class="boolean">true</span>
+}</pre>
+    </div>
+
+    <h2 id="section5">5. COMMAND_ACK message (Device -&gt; Bridge)</h2>
+    <div class="card">
+      <p>Sent back by the device after it has processed a command.</p>
+      <p><strong>Required fields</strong></p>
+      <ul>
+        <li><code>type</code> must be <code>"COMMAND_ACK"</code></li>
+        <li><code>device_uuid</code> identifies which device processed the command</li>
+        <li><code>status</code> shows whether execution succeeded, failed or was partial</li>
+        <li><code>reported_state</code> shows the actual state after execution</li>
+      </ul>
+      <pre>{
+  "type": "COMMAND_ACK",
+  "device_uuid": "light-1",
+  "status": "ok",
+  "reported_state": {
+    "power": true
   }
-}</pre><p><strong>Another example</strong></p><pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"COMMAND_ACK"</span>,
-  <span class="key">"device_uuid"</span>: <span class="string">"fan-1"</span>,
-  <span class="key">"status"</span>: <span class="string">"ok"</span>,
-  <span class="key">"state"</span>: <span class="key">{
-    "speed"</span>: <span class="number">3</span>
+}</pre>
+      <p><strong>Another example</strong></p>
+      <pre>{
+  "type": "COMMAND_ACK",
+  "device_uuid": "fan-1",
+  "status": "ok",
+  "reported_state": {
+    "speed": 3
   }
-}</pre></div>
-    <h2 id="section7">7. Transport Examples</h2>
-    <div class="card"><p><strong>BLE device</strong></p><pre class="json"><span class="key">{
-  "mode"</span>: <span class="string">"direct"</span>,
-  <span class="key">"protocol"</span>: <span class="string">"ble"</span>,
-  <span class="key">"address"</span>: <span class="string">"AA:BB:CC:DD:EE"</span>,
-  <span class="key">"service"</span>: <span class="string">"HMSoft"</span>
-}</pre><p><strong>USB device</strong></p><pre class="json"><span class="key">{
-  "mode"</span>: <span class="string">"direct"</span>,
-  <span class="key">"protocol"</span>: <span class="string">"usb_serial"</span>,
-  <span class="key">"port"</span>: <span class="string">"COM5"</span>,
-  <span class="key">"baud_rate"</span>: <span class="number">9600</span>
-}</pre><p><strong>WiFi device</strong></p><pre class="json"><span class="key">{
-  "mode"</span>: <span class="string">"direct"</span>,
-  <span class="key">"protocol"</span>: <span class="string">"wifi"</span>,
-  <span class="key">"endpoint"</span>: <span class="string">"192.168.1.45"</span>
-}</pre><p><strong>Device controlled by controller</strong></p><pre class="json"><span class="key">{
-  "mode"</span>: <span class="string">"via_controller"</span>,
-  <span class="key">"controller_uuid"</span>: <span class="string">"arduino-1"</span>,
-  <span class="key">"port"</span>: <span class="number">13</span>
-}</pre></div>
-    <h2 id="section8">8. Capability Examples</h2>
-    <div class="card"><p><strong>Boolean capability</strong></p><pre class="json"><span class="key">{
-  "power"</span>: <span class="key">{
-    "type"</span>: <span class="string">"boolean"</span>,
-    <span class="key">"writable"</span>: <span class="boolean">true</span>
+}</pre>
+    </div>
+
+    <h2 id="section6">6. Capability Examples</h2>
+    <div class="card">
+      <p><strong>Boolean capability</strong></p>
+      <pre>{
+  "power": {
+    "type": "boolean",
+    "writable": true
   }
-}</pre><p><strong>Integer capability</strong></p><pre class="json"><span class="key">{
-  "brightness"</span>: <span class="key">{
-    "type"</span>: <span class="string">"integer"</span>,
-    <span class="key">"min"</span>: <span class="number">0</span>,
-    <span class="key">"max"</span>: <span class="number">100</span>,
-    <span class="key">"writable"</span>: <span class="boolean">true</span>
+}</pre>
+      <p><strong>Integer capability</strong></p>
+      <pre>{
+  "brightness": {
+    "type": "integer",
+    "min": 0,
+    "max": 100,
+    "writable": true
   }
-}</pre><p><strong>Event capability</strong></p><pre class="json"><span class="key">{
-  "doorbell"</span>: <span class="key">{
-    "type"</span>: <span class="string">"event"</span>,
-    <span class="key">"writable"</span>: <span class="boolean">false</span>
+}</pre>
+      <p><strong>Event capability</strong></p>
+      <pre>{
+  "doorbell": {
+    "type": "event",
+    "writable": false
   }
-}</pre></div>
-    <h2 id="section9">9. Status Example</h2>
-    <div class="card"><p><strong>Online</strong></p><pre class="json"><span class="key">{
-  "connected"</span>: <span class="boolean">true</span>
-}</pre><p><strong>Offline</strong></p><pre class="json"><span class="key">{
-  "connected"</span>: <span class="boolean">false</span>
-}</pre></div>
-    <h2 id="section10">10. Multiple Controllers</h2>
-    <div class="card"><p>The system supports multiple controllers because the <code>devices</code> object can contain many entries.</p><pre class="json"><span class="key">{
-  "type"</span>: <span class="string">"CONNECT"</span>,
-  <span class="key">"devices"</span>: <span class="key">{
-    "arduino-1"</span>: <span class="key">{
-      "type"</span>: <span class="string">"controller"</span>,
-      <span class="key">"device_uuid"</span>: <span class="string">"arduino-1"</span>
-    },
-    <span class="key">"arduino-2"</span>: <span class="key">{
-      "type"</span>: <span class="string">"controller"</span>,
-      <span class="key">"device_uuid"</span>: <span class="string">"arduino-2"</span>
-    }
-  }
-}</pre></div>
-    <div class="note"><strong>Important:</strong><br>The bridge should never hardcode device types or capabilities. Devices must send all required information themselves.</div>
+}</pre>
+    </div>
+
+    <h2 id="section7">7. Status Example</h2>
+    <div class="card">
+      <p><strong>Online</strong></p>
+      <pre>{
+  "connected": true
+}</pre>
+      <p><strong>Offline</strong></p>
+      <pre>{
+  "connected": false
+}</pre>
+    </div>
+
+    <div class="note">
+      <strong>Important:</strong><br>
+      The bridge should never hardcode device types or capabilities. Devices must send all
+      required information themselves.
+    </div>
   </div>
   <script>
-    const body = document.body; const toggleButton = document.getElementById("theme-toggle"); const storageKey = "device-bridge-contract-theme";
-    function applyTheme(theme){ if(theme==="dark"){ body.classList.add("dark"); toggleButton.textContent="Switch to Light Mode"; } else { body.classList.remove("dark"); toggleButton.textContent="Switch to Dark Mode"; } }
-    const savedTheme = localStorage.getItem(storageKey) || "light"; applyTheme(savedTheme);
-    toggleButton.addEventListener("click",()=>{ const nextTheme = body.classList.contains("dark") ? "light" : "dark"; localStorage.setItem(storageKey,nextTheme); applyTheme(nextTheme); });
+    const body = document.body;
+    const toggleButton = document.getElementById("theme-toggle");
+    const storageKey = "device-bridge-contract-theme";
+
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        body.classList.add("dark");
+        toggleButton.textContent = "Switch to Light Mode";
+      } else {
+        body.classList.remove("dark");
+        toggleButton.textContent = "Switch to Dark Mode";
+      }
+    }
+
+    const savedTheme = localStorage.getItem(storageKey) || "light";
+    applyTheme(savedTheme);
+
+    toggleButton.addEventListener("click", () => {
+      const nextTheme = body.classList.contains("dark") ? "light" : "dark";
+      localStorage.setItem(storageKey, nextTheme);
+      applyTheme(nextTheme);
+    });
   </script>
 </body>
 </html>
