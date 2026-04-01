@@ -125,3 +125,41 @@ def pop_next_command(device_uuid: str) -> Dict[str, Any] | None:
     next_command = queue[next_key]
     _pending_commands_ref(device_uuid).child(next_key).delete()
     return next_command
+
+
+def mark_stale_devices_offline(threshold_seconds: int = 30) -> list[str]:
+    """
+    Checks all devices in Firebase and marks them as offline (connected=False)
+    if their last_seen is older than threshold_seconds.
+    Returns a list of device_uuids that were marked offline.
+    """
+    now = datetime.now(timezone.utc)
+    marked_offline = []
+
+    devices = _devices_ref().get() or {}
+
+    for device_uuid, device in devices.items():
+        status = device.get("status", {})
+        if not status.get("connected", False):
+            continue
+
+        last_seen_str = device.get("last_seen")
+        if not last_seen_str:
+            continue
+
+        try:
+            last_seen = datetime.fromisoformat(last_seen_str)
+            if last_seen.tzinfo is None:
+                last_seen = last_seen.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+
+        elapsed = (now - last_seen).total_seconds()
+        if elapsed > threshold_seconds:
+            device["status"]["connected"] = False
+            _device_ref(device_uuid).set(device)
+            marked_offline.append(device_uuid)
+
+    return marked_offline
+
+    
