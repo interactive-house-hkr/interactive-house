@@ -84,6 +84,9 @@ def update_last_seen(device_uuid: str, timestamp: datetime) -> Dict[str, Any]:
         return {"error": "device not found", "device_uuid": device_uuid}
 
     device["last_seen"] = timestamp.isoformat()
+    status = device.get("status", {})
+    status["connected"] = True
+    device["status"] = status
     _device_ref(device_uuid).set(device)
     return device
 
