@@ -3,89 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Device JSON Schema</title>
-
+  <title>Device - Bridge - Server Contract</title>
   <style>
-    html {
-      scroll-behavior: smooth;
-    }
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f4f6f8;
-      color: #1f2933;
-      margin: 0;
-      padding: 40px 20px;
-      line-height: 1.6;
-    }
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-    }
-    h1, h2 {
-      color: #102a43;
-    }
-    h1 {
-      text-align: center;
-      margin-top: 0;
-    }
-    h2 {
-      margin-top: 40px;
-      border-bottom: 2px solid #e4e7eb;
-      padding-bottom: 8px;
-    }
-    .card {
-      background: #f9fafb;
-      border-left: 5px solid #3b82f6;
-      padding: 20px;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-    .note {
-      background: #fff7ed;
-      border-left: 5px solid #f97316;
-      padding: 15px;
-      margin-top: 30px;
-      border-radius: 8px;
-    }
-    pre {
-      background: #111827;
-      color: #e5e7eb;
-      padding: 20px;
-      border-radius: 8px;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    code {
-      background: #e5e7eb;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    a {
-      color: #2563eb;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .toc ul {
-      margin: 0;
-      padding-left: 22px;
-    }
-    .toc li {
-      margin: 8px 0;
-    }
+    :root { --bg:#f4f6f8; --surface:#ffffff; --text:#1f2933; --line:#d9e2ec; --blue:#2563eb; --green:#16a34a; --yellow:#d97706; --red:#dc2626; --code-bg:#0f172a; --code-text:#e5e7eb; --json-key:#93c5fd; --json-string:#86efac; --json-number:#fca5a5; --json-bool:#fcd34d; --json-null:#c4b5fd; }
+    body.dark { --bg:#0f172a; --surface:#111827; --text:#e5e7eb; --line:#334155; --blue:#60a5fa; --green:#4ade80; --yellow:#f59e0b; --red:#f87171; --code-bg:#020617; --code-text:#e5e7eb; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; padding:40px 20px; background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif; line-height:1.6; }
+    .container { max-width:1100px; margin:0 auto; background:var(--surface); border-radius:14px; padding:40px; box-shadow:0 10px 30px rgba(0,0,0,.08); }
+    h1,h2,h3 { color:#102a43; } body.dark h1, body.dark h2, body.dark h3 { color:#f8fafc; }
+    h1 { margin-top:0; text-align:center; }
+    h2 { margin-top:40px; padding-bottom:8px; border-bottom:2px solid #e4e7eb; }
+    .card,.note,.warning { margin-top:20px; padding:18px 20px; border-radius:10px; }
+    .card { background:#f9fafb; border-left:5px solid var(--blue);} body.dark .card { background:#172033; }
+    .warning { background:#fff7ed; border-left:5px solid var(--yellow);} body.dark .warning { background:#3b2206; }
+    .note { background:#fef2f2; border-left:5px solid var(--red);} body.dark .note { background:#3b0d0d; }
+    .toc ul { margin:0; padding-left:22px; } .toc li { margin:8px 0; }
+    table { width:100%; border-collapse:collapse; margin-top:16px; }
+    th,td { border:1px solid var(--line); padding:12px; text-align:left; vertical-align:top; }
+    th { background:#f0f4f8; } body.dark th { background:#1e293b; }
+    code { background:#e5e7eb; padding:2px 6px; border-radius:4px; } body.dark code { background:#334155; color:#f8fafc; }
+    pre { background:var(--code-bg); color:var(--code-text); padding:18px; border-radius:10px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; }
+    .json .key { color:var(--json-key); } .json .string { color:var(--json-string); } .json .number { color:var(--json-number); } .json .boolean { color:var(--json-bool); } .json .null { color:var(--json-null); }
+    a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+    .toolbar { display:flex; justify-content:flex-end; margin-bottom:16px; }
+    .theme-toggle { border:1px solid var(--line); background:var(--surface); color:var(--text); padding:10px 14px; border-radius:8px; cursor:pointer; font-size:14px; }
   </style>
 </head>
-
 <body>
   <div class="container">
-
+    <div class="toolbar"><button class="theme-toggle" id="theme-toggle" type="button">Switch to Dark Mode</button></div>
     <h1>Device JSON Communication Format</h1>
+
+    <div class="card">
+      This document describes the JSON formats used between devices, the bridge and the server.
+      Devices send information about themselves and their capabilities. The bridge should not
+      hardcode device types or capabilities; it simply forwards and processes the data.
+    </div>
 
     <div class="card toc">
       <h2>Table of Contents</h2>
@@ -100,14 +53,7 @@
       </ul>
     </div>
 
-    <p>
-      This document describes the JSON formats used between devices, the bridge and the server.
-      Devices send information about themselves and their capabilities. The bridge should not
-      hardcode device types or capabilities; it simply forwards and processes the data.
-    </p>
-
     <h2 id="section1">1. CONNECT message (Device -&gt; Bridge)</h2>
-
     <div class="card">
       <p>
         This message is sent when a device connects and wants to register
@@ -118,9 +64,7 @@
         This message is sent once per device. If an Arduino controls multiple devices,
         it should send multiple small CONNECT messages instead of one large payload.
       </p>
-
-<pre>
-{
+<pre>{
   "type": "CONNECT",
   "devices": {
     "light-1": {
@@ -137,16 +81,12 @@
       }
     }
   }
-}
-</pre>
-
+}</pre>
     </div>
 
     <h2 id="section2">2. Device Structure</h2>
-
     <div class="card">
       <p>Each entry inside <code>devices</code> represents one device.</p>
-
       <ul>
         <li><code>device_uuid</code> - unique identifier</li>
         <li><code>type</code> - device type (light, fan, door, etc)</li>
@@ -158,12 +98,8 @@
     </div>
 
     <h2 id="section3">3. HEARTBEAT message (Device -&gt; Bridge)</h2>
-
     <div class="card">
-      <p>
-        Heartbeat messages inform the server that a device is still alive.
-      </p>
-
+      <p>Heartbeat messages inform the server that a device is still alive.</p>
       <pre>{
   "type": "HEARTBEAT",
   "device_uuid": "arduino-1"
@@ -171,20 +107,14 @@
     </div>
 
     <h2 id="section4">4. COMMAND message (Server/Bridge -&gt; Device)</h2>
-
     <div class="card">
-      <p>
-        This message is sent to a device when the server wants it to update its state.
-      </p>
-
+      <p>This message is sent to a device when the server wants it to update its state.</p>
       <p><strong>Required fields</strong></p>
-
       <ul>
         <li><code>type</code> must be <code>"COMMAND"</code></li>
         <li><code>device_uuid</code> identifies which device should execute the command</li>
         <li><code>state</code> contains the state the device should change to</li>
       </ul>
-
       <pre>{
   "type": "COMMAND",
   "device_uuid": "light-1",
@@ -192,9 +122,7 @@
     "power": true
   }
 }</pre>
-
       <p><strong>Another example</strong></p>
-
       <pre>{
   "type": "COMMAND",
   "device_uuid": "fan-1",
@@ -205,21 +133,15 @@
     </div>
 
     <h2 id="section5">5. COMMAND_ACK message (Device -&gt; Bridge)</h2>
-
     <div class="card">
-      <p>
-        Sent back by the device after it has processed a command.
-      </p>
-
+      <p>Sent back by the device after it has processed a command.</p>
       <p><strong>Required fields</strong></p>
-
       <ul>
         <li><code>type</code> must be <code>"COMMAND_ACK"</code></li>
         <li><code>device_uuid</code> identifies which device processed the command</li>
         <li><code>status</code> shows whether execution succeeded, failed or was partial</li>
         <li><code>reported_state</code> shows the actual state after execution</li>
       </ul>
-
       <pre>{
   "type": "COMMAND_ACK",
   "device_uuid": "light-1",
@@ -228,9 +150,7 @@
     "power": true
   }
 }</pre>
-
       <p><strong>Another example</strong></p>
-
       <pre>{
   "type": "COMMAND_ACK",
   "device_uuid": "fan-1",
@@ -242,19 +162,15 @@
     </div>
 
     <h2 id="section6">6. Capability Examples</h2>
-
     <div class="card">
       <p><strong>Boolean capability</strong></p>
-
       <pre>{
   "power": {
     "type": "boolean",
     "writable": true
   }
 }</pre>
-
       <p><strong>Integer capability</strong></p>
-
       <pre>{
   "brightness": {
     "type": "integer",
@@ -263,9 +179,7 @@
     "writable": true
   }
 }</pre>
-
       <p><strong>Event capability</strong></p>
-
       <pre>{
   "doorbell": {
     "type": "event",
@@ -275,16 +189,12 @@
     </div>
 
     <h2 id="section7">7. Status Example</h2>
-
     <div class="card">
       <p><strong>Online</strong></p>
-
       <pre>{
   "connected": true
 }</pre>
-
       <p><strong>Offline</strong></p>
-
       <pre>{
   "connected": false
 }</pre>
@@ -295,7 +205,30 @@
       The bridge should never hardcode device types or capabilities. Devices must send all
       required information themselves.
     </div>
-
   </div>
+  <script>
+    const body = document.body;
+    const toggleButton = document.getElementById("theme-toggle");
+    const storageKey = "device-bridge-contract-theme";
+
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        body.classList.add("dark");
+        toggleButton.textContent = "Switch to Light Mode";
+      } else {
+        body.classList.remove("dark");
+        toggleButton.textContent = "Switch to Dark Mode";
+      }
+    }
+
+    const savedTheme = localStorage.getItem(storageKey) || "light";
+    applyTheme(savedTheme);
+
+    toggleButton.addEventListener("click", () => {
+      const nextTheme = body.classList.contains("dark") ? "light" : "dark";
+      localStorage.setItem(storageKey, nextTheme);
+      applyTheme(nextTheme);
+    });
+  </script>
 </body>
 </html>
