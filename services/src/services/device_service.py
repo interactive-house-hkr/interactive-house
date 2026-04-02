@@ -24,7 +24,7 @@ def is_device_online(device: dict) -> bool:
 
 
 def connect_device(payload: ConnectDeviceBody) -> Dict[str, Any]:
-    data = payload.model_dump()
+    data = payload.model_dump(exclude_unset=True)
     devices = data.get("devices", {})
 
     connected_devices: Dict[str, Dict[str, Any]] = {}
