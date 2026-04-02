@@ -93,7 +93,7 @@ class RVCRestAdapter:
 
     def send_command_ack(self, payload: dict):
         try:
-            url = f"{self.base_url}/{self.rvc.device_id}/command_ack"
+            url = f"{self.base_url}/{self.rvc.device_id}/command-ack"
             response = self.session.post(url, json=payload)
             return response.status_code, response.json()
          

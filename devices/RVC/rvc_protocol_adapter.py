@@ -46,7 +46,6 @@ class RVCProtocolAdapter:
                     "status": {
                         "connected": True
                     },
-                    "last_seen": self._timestamp()
                 }
             }
         }
@@ -59,7 +58,6 @@ class RVCProtocolAdapter:
                         "status": {
                             "connected": True
                         },
-                        "last_seen": self._timestamp()
                     },
                 }
             }
