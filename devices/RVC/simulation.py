@@ -20,7 +20,7 @@ def command_loop(rest_adapter):
 
 if __name__ == "__main__":
     rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)
-    rest_adapter = RVCRestAdapter(rvc, base_url="url/api/v1/device-gateway/")
+    rest_adapter = RVCRestAdapter(rvc, base_url="https://knolly-svetlana-beribboned.ngrok-free.dev//api/v1/device-gateway/")
 
     heartbeat_thread = threading.Thread(target=heartbeat_loop, args=(rest_adapter,), daemon=True)
     heartbeat_thread.start()
