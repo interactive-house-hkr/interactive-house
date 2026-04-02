@@ -4,11 +4,16 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import kotlin.jvm.java
+import kotlin.getValue
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.0.2.2:8080/" //server address
+    // Use local when you run the backend on your machine:
+    // private const val BASE_URL = "http://10.0.2.2:8000/api/v1/"
 
+    // Use ngrok  when the backend has been started:
+    private const val BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/" //server address
     // Print every network request and response in Android log
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -18,11 +23,13 @@ object RetrofitClient {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    val retrofit: Retrofit = Retrofit.Builder()
+    private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
         .client(httpClient)
         .addConverterFactory(GsonConverterFactory.create()) // To convert JSON to kotlin objects automatically
         .build()
     //connect retrofit to Device Api
-    val deviceApi: DeviceApi = retrofit.create(DeviceApi::class.java)
+    val deviceApi: DeviceApi by lazy {
+        retrofit.create(DeviceApi::class.java)
+    }
 }
