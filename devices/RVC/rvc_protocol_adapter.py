@@ -16,69 +16,56 @@ class RVCProtocolAdapter:
 
     def build_device_entry(self) -> dict:
         return {
-            "device_uuid": self.rvc.device_id,
-            "type": "robot_vacuum",
-            "transport": {
-                "mode": "simulated",
-                "protocol": "python_local"
-            },
-            "capabilities": {
-                "cleaning": {
-                    "type": "boolean",
-                    "writable": True
-                },
-                "paused": {
-                    "type": "boolean",
-                    "writable": True
-                },
-                "return_to_base": {
-                    "type": "boolean",
-                    "writable": True
-                },
-                "battery_level": {
-                    "type": "integer",
-                    "min": 0,
-                    "max": 100,
-                    "writable": False
-                },
-                "position_x": {
-                    "type": "integer",
-                    "writable": False
-                },
-                "position_y": {
-                    "type": "integer",
-                    "writable": False
-                },
-                "docked": {
-                    "type": "boolean",
-                    "writable": False
+            "devices": {
+                self.rvc.name: {
+                    "device_uuid": self.rvc.device_id,
+                    "type": "robot_vacuum",
+                    "transport": {
+                        "mode": "rest",
+                        "protocol": "rest"
+                    },
+                    "capabilities": {
+                        "cleaning": {
+                            "type": "boolean",
+                            "writable": True
+                        },
+                        "paused": {
+                            "type": "boolean",
+                            "writable": True
+                        },
+                        "return_to_base": {
+                            "type": "boolean",
+                            "writable": True
+                        },
+                        "docked": {
+                            "type": "boolean",
+                            "writable": False
+                        }
+                    },
+                    "state": self.rvc.get_reported_state(),
+                    "status": {
+                        "connected": True
+                    },
+                    "last_seen": self._timestamp()
                 }
-            },
-            "state": self.rvc.get_reported_state(),
-            "status": {
-                "connected": True
-            },
-            "last_seen": self._timestamp()
+            }
         }
 
     def build_connect_message(self) -> dict:
         return {
-            "type": "CONNECT",
-            "devices": {
-                self.rvc.device_id: self.build_device_entry()
+                "devices": {
+                    self.rvc.name: {
+                        "device_uuid": self.rvc.device_id,
+                        "status": {
+                            "connected": True
+                        },
+                        "last_seen": self._timestamp()
+                    },
+                }
             }
-        }
-
-    def build_heartbeat_message(self) -> dict:
-        return {
-            "type": "HEARTBEAT",
-            "device_uuid": self.rvc.device_id
-        }
 
     def build_command_ack(self, status: str = "ok", error: str | None = None) -> dict:
         payload = {
-            "type": "COMMAND_ACK",
-            "device_uuid": self.rvc.device_id,
             "status": status,
             "reported_state": self.rvc.get_reported_state()
         }
@@ -87,42 +74,3 @@ class RVCProtocolAdapter:
             payload["error"] = error
 
         return payload
-
-    def apply_command(self, payload: dict) -> dict:
-        """
-        Accepts a COMMAND message and applies its state to the local RVC.
-        Returns a COMMAND_ACK payload.
-        """
-        if payload.get("type") != "COMMAND":
-            return self.build_command_ack(status="error", error="Invalid message type")
-
-        if payload.get("device_uuid") != self.rvc.device_id:
-            return self.build_command_ack(status="error", error="Wrong device_uuid")
-
-        state = payload.get("state", {})
-
-        try:
-            self._apply_state(state)
-            return self.build_command_ack(status="ok")
-        except Exception as e:
-            return self.build_command_ack(status="error", error=str(e))
-
-    def _apply_state(self, state: dict):
-        # Dock command gets highest priority
-        if state.get("return_to_base") is True:
-            self.rvc.dock()
-            return
-
-        # Pause / resume logic
-        if "paused" in state:
-            if state["paused"] is True:
-                self.rvc.pause()
-            elif state["paused"] is False and self.rvc.status == "paused":
-                self.rvc.resume()
-
-        # Cleaning on / off
-        if "cleaning" in state:
-            if state["cleaning"] is True:
-                self.rvc.start()
-            elif state["cleaning"] is False:
-                self.rvc.stop()
