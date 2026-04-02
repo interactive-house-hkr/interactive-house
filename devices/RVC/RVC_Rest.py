@@ -81,12 +81,10 @@ class RVCRestAdapter:
             return self.protocol.build_command_ack(status="error", error=str(e))
 
 
-    def send_command_ack(self, status="ok", error=None):
+    def send_command_ack(self, payload: dict):
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/command_ack"
-            payload = self.protocol.build_command_ack(status=status, error=error)
             response = self.session.post(url, json=payload)
-
             return response.status_code, response.json()
          
         except Exception as e:

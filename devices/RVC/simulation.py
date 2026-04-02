@@ -14,13 +14,13 @@ def command_loop(rest_adapter):
         if command:
             print(f"Received command: {command}")
             ack = rest_adapter.apply_command(command)
-            rest_adapter.send_command_ack(**ack)
+            rest_adapter.send_command_ack(ack)
         time.sleep(0.5)
 
 
 if __name__ == "__main__":
     rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)
-    rest_adapter = RVCRestAdapter(rvc, base_url="https://knolly-svetlana-beribboned.ngrok-free.dev//api/v1/device-gateway/")
+    rest_adapter = RVCRestAdapter(rvc, base_url="https://knolly-svetlana-beribboned.ngrok-free.dev//api/v1/device-gateway")
     rest_adapter.connect()
 
     heartbeat_thread = threading.Thread(target=heartbeat_loop, args=(rest_adapter,), daemon=True)
@@ -28,6 +28,9 @@ if __name__ == "__main__":
 
     command_thread = threading.Thread(target=command_loop, args=(rest_adapter,), daemon=True)
     command_thread.start()
+
+    heartbeat_thread.join()
+    command_thread.join()
 
 
     # manual testing of RVC functionality
