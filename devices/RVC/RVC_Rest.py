@@ -19,7 +19,7 @@ class RVCRestAdapter:
         self.is_registered = self._load_registration_status()
 
     def _load_registration_status(self):
-        config_file = "cfg.json"
+        config_file = "./devices/RVC/cfg.json"
 
         if os.path.exists(config_file):
             with open(config_file, "r") as f:
@@ -29,7 +29,7 @@ class RVCRestAdapter:
         return False
 
     def _save_registration_status(self):
-        config_file = "cfg.json"
+        config_file = "./devices/RVC/cfg.json"
         with open(config_file, "w") as f:
             json.dump({"is_registered": self.is_registered}, f)
 
