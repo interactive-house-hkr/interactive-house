@@ -1,6 +1,5 @@
 import requests
 import rvc_protocol_adapter as protocol
-from datetime import datetime, timezone
 import os
 import json
 
@@ -19,7 +18,7 @@ class RVCRestAdapter:
         self.is_registered = self._load_registration_status()
 
     def _load_registration_status(self):
-        config_file = "./devices/RVC/cfg.json"
+        config_file = "cfg.json"
 
         if os.path.exists(config_file):
             with open(config_file, "r") as f:
@@ -29,24 +28,25 @@ class RVCRestAdapter:
         return False
 
     def _save_registration_status(self):
-        config_file = "./devices/RVC/cfg.json"
+        config_file = "cfg.json"
         with open(config_file, "w") as f:
             json.dump({"is_registered": self.is_registered}, f)
 
     def connect(self):
         try:
             url = f"{self.base_url}/connect"
+
             if not self.is_registered:
                 payload = self.protocol.build_device_entry()
-                self.is_registered = True
-                self._save_registration_status()
             else:
                 payload = self.protocol.build_connect_message()
 
-            response = self.session.post(url, json=payload)
-            print(f"Response status code: {response.status_code}")
-            print(f"Response text: {response.text}")  # Print raw response
-            return response.status_code, response.json()  # This will fail if response.text is empty or invalid JSON
+            response = self.session.post(url, json=payload, timeout=5)
+            if response.status_code == 200:
+                self.is_registered = True
+                self._save_registration_status()
+
+            return response.status_code, response.json()
 
         except Exception as e:
             print(f"Error during connect: {e}")
@@ -56,19 +56,8 @@ class RVCRestAdapter:
     def send_heartbeat(self):
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/heartbeat"
-            response = self.session.post(url)
-            print(f"Heartbeat response status code: {response.status_code}")
-            print(f"Heartbeat response text: {response.text}")
-
-            if not response.text.strip():
-                print("Empty response from server")
-                return response.status_code, {"error": "Empty response"}
-
-            try:
-                return response.status_code, response.json()
-            except ValueError as e:
-                print(f"Invalid JSON response: {e}")
-                return response.status_code, {"error": "Invalid JSON"}
+            response = self.session.post(url, timeout=5)
+            return response.status_code, response.json()
 
         except Exception as e:
             print(f"Error sending heartbeat: {e}")
@@ -94,7 +83,7 @@ class RVCRestAdapter:
     def send_command_ack(self, payload: dict):
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/command-ack"
-            response = self.session.post(url, json=payload)
+            response = self.session.post(url, json=payload, timeout=5)
             return response.status_code, response.json()
          
         except Exception as e:
@@ -104,7 +93,7 @@ class RVCRestAdapter:
     def poll_next_command(self):
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/commands/next"
-            response = self.session.get(url)
+            response = self.session.get(url, timeout=5)
 
             if response.status_code == 200:
                 return response.json().get("command")
