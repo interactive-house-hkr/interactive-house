@@ -5,7 +5,7 @@ import time
 import random
 
 try:
-    from devices.RVC.RVC_Vis import RVCVisualizer
+    from RVC_Vis import RVCVisualizer
 except ModuleNotFoundError:
     RVCVisualizer = None
 
@@ -27,7 +27,9 @@ class RVC:
             "name": self.name,
             "position": self.position,
             "status": self.status,
-            "battery_level": self.battery_level
+            "battery_level": self.battery_level,
+            "position_x": self.position[0],
+            "position_y": self.position[1],
         }
 
     def get_reported_state(self):
@@ -35,11 +37,7 @@ class RVC:
             "cleaning": self.status == "cleaning",
             "paused": self.status == "paused",
             "return_to_base": self.status == "returning_to_base",
-            "battery_level": self.battery_level,
-            "position_x": self.position[0],
-            "position_y": self.position[1],
             "docked": self.position == self.dock_position and self.status == "idle",
-            "status_text": self.status
         }
 
     def start(self):
@@ -123,21 +121,3 @@ class RVC:
             self.visualizer.update_plot(self.position, self.name)
             time.sleep(1)
 
-
-if __name__ == "__main__":
-    rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)
-
-    if rvc.visualizer:
-        rvc.visualizer.initialize_plot(rvc.name)
-
-    rvc.start()
-    rvc.visualize()
-
-    for _ in range(20):
-        rvc.move()
-        rvc.visualize()
-
-    rvc.pause()
-    rvc.resume()
-    rvc.stop()
-    rvc.dock()
