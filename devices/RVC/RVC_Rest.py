@@ -36,19 +36,18 @@ class RVCRestAdapter:
     def connect(self):
         try:
             url = f"{self.base_url}/connect"
-
             if not self.is_registered:
                 payload = self.protocol.build_device_entry()
-            else:
-                payload = self.protocol.build_connect_message()
-            
-            response = self.session.post(url, json=payload)
-            if response.status_code == 200:
                 self.is_registered = True
                 self._save_registration_status()
+            else:
+                payload = self.protocol.build_connect_message()
 
-            return response.status_code, response.json()
-        
+            response = self.session.post(url, json=payload)
+            print(f"Response status code: {response.status_code}")
+            print(f"Response text: {response.text}")  # Print raw response
+            return response.status_code, response.json()  # This will fail if response.text is empty or invalid JSON
+
         except Exception as e:
             print(f"Error during connect: {e}")
             return None, None
@@ -58,8 +57,19 @@ class RVCRestAdapter:
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/heartbeat"
             response = self.session.post(url)
-            return response.status_code, response.json()
-        
+            print(f"Heartbeat response status code: {response.status_code}")
+            print(f"Heartbeat response text: {response.text}")
+
+            if not response.text.strip():
+                print("Empty response from server")
+                return response.status_code, {"error": "Empty response"}
+
+            try:
+                return response.status_code, response.json()
+            except ValueError as e:
+                print(f"Invalid JSON response: {e}")
+                return response.status_code, {"error": "Invalid JSON"}
+
         except Exception as e:
             print(f"Error sending heartbeat: {e}")
             return None, None
