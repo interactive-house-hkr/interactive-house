@@ -12,8 +12,11 @@ from services.src.bridge.bridge_state import (
 from services.src.config.bridge_config import HM10_UUID, CMD_DELAY
 
 logger = get_logger("ble_controller")
-
-ALLOWED_DEVICE_NAMES = {"HMSoft"}  # Change to the actual name of your BLE device if different or add more names as needed
+ble_write_lock = asyncio.Lock()
+# Hardcoded HM-10 address for isolating the device connection
+HMSOFT_ADDRESS = "94:A9:A8:18:0B:AC"
+# List of allowed device IDs below
+ALLOWED_DEVICE_NAMES = {"94:A9:A8:18:0B:AC"}
 
 
 def on_disconnect(client):
@@ -22,14 +25,17 @@ def on_disconnect(client):
 
 async def send_ble_json(client: BleakClient, payload: dict) -> bool:
     if not client.is_connected:
-        logger.warning("Cannot send BLE JSON: client is not connected")
-        return False
+        logger.warning("BLE client reports disconnected; attempting write anyway")
 
     try:
         message = json.dumps(payload) + "\n"
-        await client.write_gatt_char(HM10_UUID, message.encode(), response=True)
+        async with ble_write_lock:
+            await client.write_gatt_char(HM10_UUID, message.encode(), response=True)
         await asyncio.sleep(CMD_DELAY)
-        logger.debug(f"Sent BLE JSON: {message.strip()}")
+        # Temporarily changed from logger.debug
+        logger.info(f"Sent BLE JSON: {message.strip()}")
+
+        # logger.debug(f"Sent BLE JSON: {message.strip()}")
         return True
     except Exception as e:
         logger.error(f"BLE write failed: {e}")
@@ -43,6 +49,9 @@ def make_notification_handler(client: BleakClient):
         nonlocal buffer
 
         chunk = data.decode(errors="ignore")
+        # Added logger to confirm data is being recieved
+        logger.info(f"Raw BLE chunk received: {chunk!r}")
+
         buffer += chunk
 
         while "\n" in buffer:
@@ -66,6 +75,10 @@ async def run_ble_session(client: BleakClient):
 
     try:
         await client.start_notify(HM10_UUID, handler)
+        # Added delay for the notification time to settle
+        await asyncio.sleep(3)
+        # Added Ping to update the server on connection info AFTER it's connected
+        await send_ble_json(client, {"type": "PING"})
     except Exception as e:
         logger.warning(f"Failed to enable notifications on {HM10_UUID}: {e}")
 
@@ -85,9 +98,13 @@ async def run_ble() -> bool:
         logger.warning("No BLE devices found")
         return False
 
+    for device in devices:
+        logger.info(
+            f"Found BLE device: name={device.name}, address={device.address}")
+
     candidates = [
         device for device in devices
-        if (device.name or "").strip() in ALLOWED_DEVICE_NAMES
+        if (device.address or "").strip() in ALLOWED_DEVICE_NAMES
     ]
 
     if not candidates:
