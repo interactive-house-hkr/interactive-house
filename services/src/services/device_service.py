@@ -24,7 +24,7 @@ def is_device_online(device: dict) -> bool:
 
 
 def connect_device(payload: ConnectDeviceBody) -> Dict[str, Any]:
-    data = payload.model_dump()
+    data = payload.model_dump(exclude_unset=True)
     devices = data.get("devices", {})
 
     connected_devices: Dict[str, Dict[str, Any]] = {}
@@ -91,7 +91,16 @@ def delete_device(device_uuid: str) -> dict[str, str]:
 
 def heartbeat(device_uuid: str):
     now = datetime.now(timezone.utc)
-    return device_store.update_last_seen(device_uuid, now)
+    result = device_store.update_last_seen(device_uuid, now)
+
+    if "error" in result:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    # Mark any stale devices as offline
+    device_store.mark_stale_devices_offline(OFFLINE_THRESHOLD_SECONDS)
+
+    return result
+
 
 
 def get_next_command(device_uuid: str) -> Dict[str, Any]:

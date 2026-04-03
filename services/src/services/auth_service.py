@@ -8,9 +8,9 @@ from services.src.schemas.auth_schema import (
   RegisterRequest,
   LoginRequest
 )
-from firebase_admin import db
 from fastapi import HTTPException
 import uuid
+from services.src.firebase import user_store
 
 """
 Registers a new user:
@@ -25,16 +25,14 @@ Returns a success response with tokens.
 """
 
 def register(user: RegisterRequest):
-  # Databse references
-  users_ref = db.reference("users")# -> All users
-  usernames_ref = db.reference("usernames")# -> All usernames for lookup
 
   # Username is normalized 
   username = user.username.lower()
 
   # Does the already exist? -> 400 ERROR
-  if usernames_ref.child(username).get():
+  if user_store.get_user_id_by_username(username):
     raise HTTPException(status_code=400, detail="User already exists")
+
   
   # Hash password and create a unique user_id
   password_hash = hash_password(user.password)
@@ -49,8 +47,9 @@ def register(user: RegisterRequest):
   }
    
   # Saves user and username
-  users_ref.child(user_id).set(user_data)
-  usernames_ref.child(username).set(user_id)
+  user_store.save_user(user_id, user_data)
+  user_store.save_username(username, user_id)
+
   
   # Creates tokens
   access_token = create_access_token(user_id)
@@ -76,20 +75,18 @@ Returns a success response with tokens.
 """
 
 def login(user: LoginRequest):
-  # Database references
-  users_ref = db.reference("users")# -> All users
-  usernames_ref = db.reference("usernames")# -> All usernames for lookup
 
   # Normalize username and get user_id  
   username = user.username.lower()
-  user_id = usernames_ref.child(username).get()
+  user_id = user_store.get_user_id_by_username(username)
+
 
   # Wrong username? -> 401 ERROR
   if not user_id:
     unauthorized_error()
 
   # User from database
-  db_user = users_ref.child(user_id).get()
+  db_user = user_store.get_user(user_id)
   
   # Does the user exist? -> 401 ERROR
   if not db_user:
@@ -117,3 +114,4 @@ Made it to function for better readability and reuseability
 """
 def unauthorized_error():
   raise HTTPException(status_code=401, detail="Invalid credentials")
+
