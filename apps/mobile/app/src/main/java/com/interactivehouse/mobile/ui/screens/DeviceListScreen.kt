@@ -240,10 +240,11 @@ private fun DeviceTypeIconPlaceholder(type: String) {
 
 // Short status string shown on the card
 private fun deviceSummaryStatus(device: Device): String {
+    val state = device.stateOrEmpty
     // checks whether the device state contains a power value
-    val power = device.state["power"]
+    val power = state["power"]
     if (power is Boolean) {
-        val extra = device.state.entries
+        val extra = state.entries
             .filter { it.key != "power" }
             .sortedBy { it.key }
             .take(1)
@@ -254,7 +255,7 @@ private fun deviceSummaryStatus(device: Device): String {
             if (power) "On" else "Off"
         }
     }
-    if (device.state.isEmpty()) return "No status"
-    return device.state.entries.sortedBy { it.key }.take(2)
+    if (state.isEmpty()) return "No status"
+    return state.entries.sortedBy { it.key }.take(2)
         .joinToString(" · ") { "${it.key}: ${formatStateValue(it.value)}" }
 }

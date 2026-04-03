@@ -27,7 +27,7 @@ fun DeviceCapabilityControls(
     onBooleanCapability: (String, Boolean) -> Unit,
     onIntegerCapability: (String, Int) -> Unit
 ) {
-    val writableCaps = device.capabilities.entries
+    val writableCaps = device.capabilitiesOrEmpty.entries
         .filter { it.value.writable }
         .sortedBy { it.key }
     if (writableCaps.isEmpty()) {
@@ -61,7 +61,7 @@ private fun CapabilityControlRow(
 ) {
     when (spec.type) {
         "boolean" -> {
-            val current = (device.state[capabilityKey] as? Boolean) ?: false
+            val current = (device.stateOrEmpty[capabilityKey] as? Boolean) ?: false
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = 12.dp)
@@ -82,7 +82,7 @@ private fun CapabilityControlRow(
             val min = spec.min ?: 0
             val max = spec.max ?: 100
             val fallback = ((min + max) / 2).coerceIn(min, max)
-            val current = device.state[capabilityKey].toUiInt(fallback, min, max)
+            val current = device.stateOrEmpty[capabilityKey].toUiInt(fallback, min, max)
             Column(modifier = Modifier.padding(top = 12.dp)) {
                 Text(
                     text = "${capabilityKey.replaceFirstChar { it.uppercase() }} — $current",

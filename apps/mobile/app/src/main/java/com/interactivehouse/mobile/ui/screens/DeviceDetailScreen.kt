@@ -126,14 +126,15 @@ fun DeviceDetailScreen(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            if (device.state.isEmpty()) {
+            val state = device.stateOrEmpty
+            if (state.isEmpty()) {
                 Text(
                     text = "No state reported",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                device.state.entries.sortedBy { it.key }.forEach { (key, value) ->
+                state.entries.sortedBy { it.key }.forEach { (key, value) ->
                     Text(
                         text = "$key: ${formatStateValue(value)}",
                         style = MaterialTheme.typography.bodyLarge,
