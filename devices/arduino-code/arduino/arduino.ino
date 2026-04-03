@@ -6,10 +6,6 @@
 #include <LiquidCrystal_I2C.h>
 #include <Servo.h>
 #include <ArduinoJson.h>
-// Added library SoftwareSerial
-// #include <SoftwareSerial.h>
-
-// SoftwareSerial btSerial(0, 1);
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Servo doorServo;
@@ -28,8 +24,9 @@ String doorState = "closed";
 // ----- Send Connect -----
 // ------------------------
 void sendConnect()
-{
+{ // ------------------------
   // Send devices one at a time to avoid RAM overflow
+  // ------------------------
 
   // Controller
   StaticJsonDocument<128> d1;
