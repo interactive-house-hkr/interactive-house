@@ -25,6 +25,16 @@ async def handle_connect_message(transport_type: str, transport, message: str):
         # logger.debug(f"Raw message: {message}")
         return
 
+    devices = parsed.get("devices")
+    if isinstance(devices, dict) and devices:
+        try:
+            payload = ConnectDeviceBody(devices=devices)
+            result = device_controller.connect_device(payload)
+            logger.info(f"Connect result: {result}")
+        except Exception as e:
+            logger.error(f"Failed to connect device(s) from CONNECT message: {e}")
+        return
+
     device_uuid = parsed.get("device_uuid")
     device_type = parsed.get("device_type")
 

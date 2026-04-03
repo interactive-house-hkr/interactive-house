@@ -12,6 +12,7 @@ from services.src.bridge.bridge_state import (
 from services.src.config.bridge_config import HM10_UUID, CMD_DELAY
 
 logger = get_logger("ble_controller")
+ble_write_lock = asyncio.Lock()
 # Hardcoded HM-10 address for isolating the device connection
 HMSOFT_ADDRESS = "94:A9:A8:18:0B:AC"
 # List of allowed device IDs below
@@ -24,12 +25,12 @@ def on_disconnect(client):
 
 async def send_ble_json(client: BleakClient, payload: dict) -> bool:
     if not client.is_connected:
-        logger.warning("Cannot send BLE JSON: client is not connected")
-        return False
+        logger.warning("BLE client reports disconnected; attempting write anyway")
 
     try:
         message = json.dumps(payload) + "\n"
-        await client.write_gatt_char(HM10_UUID, message.encode(), response=False)
+        async with ble_write_lock:
+            await client.write_gatt_char(HM10_UUID, message.encode(), response=True)
         await asyncio.sleep(CMD_DELAY)
         # Temporarily changed from logger.debug
         logger.info(f"Sent BLE JSON: {message.strip()}")
