@@ -4,10 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Home, Eye, EyeOff } from "lucide-react";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1";
 
-const USE_MOCK_AUTH = true;
+const USE_MOCK_AUTH = false;
 
 export default function LoginPage() {
   const router = useRouter();
