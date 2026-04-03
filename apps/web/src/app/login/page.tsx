@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Home, Eye, EyeOff } from "lucide-react";
 
-const BASE_URL = "http://localhost:8080/api/v1";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
-// Set to false when your server endpoints are ready
 const USE_MOCK_AUTH = true;
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,52 +19,115 @@ export default function LoginPage() {
 
   const [form, setForm] = useState({
     username: "",
+    email: "",
     password: "",
     confirmPassword: "",
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
+
+  const submitLabel = useMemo(() => {
+    if (loading) return "Please wait...";
+    return isSignUp ? "Sign Up" : "Sign In";
+  }, [loading, isSignUp]);
+
+  const toggleMode = () => {
+    setIsSignUp((prev) => !prev);
+    setError("");
+    setShowPassword(false);
+    setForm({
+      username: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    });
+  };
+
+  const validateForm = () => {
+    if (form.username.trim().length < 3) {
+      return "Username must be at least 3 characters";
+    }
+
+    if (form.password.length < 6) {
+      return "Password must be at least 6 characters";
+    }
+
+    if (isSignUp && !form.email.trim()) {
+      return "Email is required";
+    }
+
+    if (isSignUp && form.password !== form.confirmPassword) {
+      return "Passwords do not match";
+    }
+
+    return "";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (isSignUp && form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setLoading(true);
 
     try {
-      // Mock auth for testing without server
       if (USE_MOCK_AUTH) {
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate delay
+        await new Promise((resolve) => setTimeout(resolve, 500));
         localStorage.setItem("token", "mock-token-12345");
         localStorage.setItem("username", form.username);
-        window.location.href = "/dashboard";
+        router.push("/dashboard");
         return;
       }
 
-      // Real server auth
       const endpoint = isSignUp ? "/auth/register" : "/auth/login";
+
+      const body = isSignUp
+        ? {
+            username: form.username.trim(),
+            email: form.email.trim(),
+            password: form.password,
+          }
+        : {
+            username: form.username.trim(),
+            password: form.password,
+          };
+
       const response = await fetch(`${BASE_URL}${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: form.username,
-          password: form.password,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(body),
       });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || "Authentication failed");
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.status === "error") {
+        throw new Error(
+          data?.detail?.[0]?.msg ||
+            data?.message ||
+            data?.detail ||
+            "Authentication failed"
+        );
       }
 
-      const data = await response.json();
-      
-      // Store token and redirect to dashboard
-      localStorage.setItem("token", data.token);
-      window.location.href = "/dashboard";
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("refreshToken", data.refresh_token);
+      localStorage.setItem("userId", data.user_id);
+      localStorage.setItem("username", form.username.trim());
+
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
@@ -70,80 +136,105 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100 mb-3">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100">
             <Home className="h-7 w-7 text-teal-600" />
           </div>
           <h1 className="text-xl font-bold text-gray-900">Interactive House</h1>
           <p className="text-sm text-gray-500">Smart Home Control</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg shadow-gray-200/50 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg shadow-gray-200/50">
+          <h2 className="mb-1 text-lg font-semibold text-gray-900">
             {isSignUp ? "Create Account" : "Welcome Back"}
           </h2>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="mb-6 text-sm text-gray-500">
             {isSignUp ? "Sign up to get started" : "Sign in to your account"}
           </p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
                 Username
               </label>
               <input
                 type="text"
                 value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-shadow"
+                onChange={(e) =>
+                  setForm({ ...form, username: e.target.value })
+                }
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-400 transition-shadow focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter username"
                 required
               />
             </div>
 
+            {isSignUp && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-400 transition-shadow focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="Enter email"
+                  required
+                />
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
                 Password
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full px-4 py-2.5 pr-11 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-shadow"
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 pr-11 text-gray-900 placeholder-gray-400 transition-shadow focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Enter password"
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             {isSignUp && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
                   Confirm Password
                 </label>
                 <input
                   type="password"
                   value={form.confirmPassword}
-                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-shadow"
+                  onChange={(e) =>
+                    setForm({ ...form, confirmPassword: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-400 transition-shadow focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Confirm password"
                   required
                 />
@@ -153,21 +244,20 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-teal-500 text-white font-medium hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full rounded-xl bg-teal-500 py-2.5 font-medium text-white transition-colors hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Sign In"}
+              {submitLabel}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError("");
-              }}
-              className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+              onClick={toggleMode}
+              className="text-sm font-medium text-teal-600 hover:text-teal-700"
             >
-              {isSignUp ? "Already have an account? Sign In" : "Need an account? Sign Up"}
+              {isSignUp
+                ? "Already have an account? Sign In"
+                : "Need an account? Sign Up"}
             </button>
           </div>
         </div>
