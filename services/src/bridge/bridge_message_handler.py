@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime
 
@@ -20,18 +21,47 @@ async def handle_connect_message(transport_type: str, transport, message: str):
         parsed = json.loads(message)
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON from device: {e}")
-        logger.debug(f"Raw message: {message}")
         return
 
-    if "devices" not in parsed:
-        logger.warning("CONNECT message missing 'devices'")
-        return
+    # Support both batch format {"devices": {...}} and individual Arduino format
+    # Arduino sends: {"type":"CONNECT","device_uuid":"light-1","device_type":"light","power":false}
+    if "devices" in parsed:
+        # Batch format from REST simulators
+        try:
+            payload = ConnectDeviceBody(**parsed)
+        except Exception as e:
+            logger.error(f"Payload validation failed: {e}")
+            return
+    else:
+        # Individual device format from Arduino
+        device_uuid = parsed.get("device_uuid")
+        device_type = parsed.get("device_type")
 
-    try:
-        payload = ConnectDeviceBody(**parsed)
-    except Exception as e:
-        logger.error(f"Payload validation failed: {e}")
-        return
+        if not device_uuid or not device_type:
+            logger.warning(f"CONNECT message missing device_uuid or device_type: {parsed}")
+            return
+
+        # Build state from extracted fields in the connect message
+        state = {}
+        if "power" in parsed:
+            state["power"] = parsed["power"]
+        if "open" in parsed:
+            state["open"] = parsed["open"]
+
+        logger.info(f"Device connected: uuid={device_uuid}, type={device_type}, state={state}")
+
+        try:
+            payload = ConnectDeviceBody(devices={
+                device_uuid: {
+                    "device_uuid": device_uuid,
+                    "type": device_type,
+                    "transport": {"mode": "bridge", "protocol": "ble"},
+                    "state": state
+                }
+            })
+        except Exception as e:
+            logger.error(f"Payload validation failed: {e}")
+            return
 
     try:
         result = device_controller.connect_device(payload)
@@ -40,25 +70,9 @@ async def handle_connect_message(transport_type: str, transport, message: str):
         logger.error(f"Failed to connect devices: {e}")
         return
 
-    response_payload = {
-        "type": "CONNECT_ACK",
-        "message": result.get("message"),
-        "devices": result.get("devices", {}),
-        "generated_uuids": result.get("generated_uuids", {}),
-        "server_time": now(),
-    }
-
-    if transport_type == "ble":
-        from services.src.bridge.ble_controller import send_ble_json
-        sent = await send_ble_json(transport, response_payload)
-    else:
-        from services.src.bridge.usb_controller import send_usb_json
-        sent = await send_usb_json(transport, response_payload)
-
-    if sent:
-        logger.info("Sent CONNECT_ACK back to device")
-    else:
-        logger.error("Failed to send CONNECT_ACK back to device")
+    # CONNECT_ACK disabled for Arduino — sending ACK interrupts reception of
+    # multiple consecutive CONNECT messages from the Arduino (it sends 4 devices
+    # one at a time with 100ms gaps). The Arduino does not wait for ACK.
 
 
 async def handle_heartbeat_message(message: str):
@@ -113,6 +127,31 @@ async def handle_incoming_message(transport_type: str, transport, message: str):
         return
 
     message_type = parsed.get("type")
+
+    if message_type == "DIAG":
+        # Arduino sends diagnostics on startup — log for version verification
+        aj_ver = parsed.get("arduino_json", "unknown")
+        board = parsed.get("board", "unknown")
+        sram = parsed.get("sram", "?")
+        free_ram = parsed.get("free_ram", "?")
+        logger.info(
+            f"ARDUINO DIAGNOSTICS: ArduinoJson={aj_ver}, board={board}, "
+            f"SRAM={sram} bytes, free_ram={free_ram} bytes"
+        )
+        # Validate ArduinoJson version
+        if aj_ver != "unknown" and not aj_ver.startswith("6."):
+            logger.error(
+                f"ARDUINO VERSION MISMATCH: ArduinoJson {aj_ver} detected. "
+                f"This bridge requires ArduinoJson v6.x. "
+                f"v5.x has incompatible API, v7.x removed StaticJsonDocument."
+            )
+        # Warn if free RAM is low
+        if isinstance(free_ram, int) and free_ram < 500:
+            logger.warning(
+                f"ARDUINO LOW MEMORY: Only {free_ram} bytes free. "
+                f"Risk of crashes during JSON operations."
+            )
+        return
 
     if message_type == "CONNECT":
         await handle_connect_message(transport_type, transport, message)

@@ -17,6 +17,11 @@ router = APIRouter(
 def list_devices(type: str | None = None, user=Depends(optional_user)):
     return controller.list_devices(type=type)
 
+# Events must be registered BEFORE /{device_uuid} to avoid route shadowing
+@router.get("/events")
+def events():
+    return controller.events()
+
 @router.get("/{device_uuid}")
 def get_device(device_uuid: str, user=Depends(optional_user)):
     return controller.get_device(device_uuid=device_uuid)
@@ -40,11 +45,3 @@ async def post_command(device_uuid: str, payload: CommandPayload, user=Depends(o
 @router.post("/{device_uuid}/heartbeat")
 def heartbeat(device_uuid: str):
     return controller.heartbeat(device_uuid=device_uuid)
-
-# -------------------------
-# Events (placeholder)
-# -------------------------
-
-@router.get("/events")
-def events():
-    return controller.events()

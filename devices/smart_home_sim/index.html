@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Home Simulator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0e17;
+      color: #e0e6ed;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0f1923 0%, #162032 100%);
+      border-bottom: 1px solid #1e3a5f;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #4fd1c5;
+      letter-spacing: 1px;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #555;
+      transition: background 0.3s;
+    }
+
+    .status-dot.online { background: #48bb78; box-shadow: 0 0 8px #48bb7888; }
+    .status-dot.error { background: #f56565; box-shadow: 0 0 8px #f5656588; }
+    .status-dot.connecting { background: #ecc94b; box-shadow: 0 0 8px #ecc94b88; }
+
+    .status-label { font-size: 13px; color: #8899aa; }
+
+    .controls-bar {
+      padding: 12px 24px;
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid #1a2744;
+      background: #0d1321;
+    }
+
+    .btn {
+      padding: 8px 18px;
+      border: 1px solid #2a4a6b;
+      border-radius: 8px;
+      background: #132238;
+      color: #8ecae6;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { background: #1a3352; border-color: #4fd1c5; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn.primary { background: #1a6b5a; border-color: #4fd1c5; color: #fff; }
+    .btn.primary:hover { background: #1f8571; }
+    .btn.danger { background: #5a1a1a; border-color: #f56565; color: #fbb; }
+    .btn.danger:hover { background: #712b2b; }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 0;
+      min-height: calc(100vh - 110px);
+    }
+
+    /* --- House View --- */
+    .house-view {
+      padding: 24px;
+    }
+
+    .house-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 16px;
+      height: 100%;
+      min-height: 500px;
+    }
+
+    .room {
+      background: #111927;
+      border: 1px solid #1e3a5f;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .room::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #4fd1c544, transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .room.has-active::before { opacity: 1; }
+
+    .room-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #4fd1c5;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 16px;
+    }
+
+    .room-devices {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .device-card {
+      background: #0d1a2a;
+      border: 1px solid #1a3050;
+      border-radius: 12px;
+      padding: 14px;
+      transition: all 0.2s;
+    }
+
+    .device-card.on {
+      border-color: #4fd1c5;
+      background: #0f2234;
+    }
+
+    .device-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .device-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .device-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: #162640;
+      transition: all 0.3s;
+    }
+
+    .device-card.on .device-icon {
+      background: #1a4a3a;
+    }
+
+    .device-card.on .device-icon.light-icon {
+      background: #4a3a1a;
+      box-shadow: 0 0 20px #ecc94b44;
+    }
+
+    .device-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .device-type {
+      font-size: 11px;
+      color: #667;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: #2a3a4a;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .toggle.on { background: #38a89d; }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+
+    .toggle.on::after { transform: translateX(20px); }
+
+    .device-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .slider-label {
+      font-size: 11px;
+      color: #667;
+      width: 70px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .slider-value {
+      font-size: 12px;
+      color: #4fd1c5;
+      font-weight: 600;
+      width: 35px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: #1a3050;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4fd1c5;
+      cursor: pointer;
+      border: 2px solid #0a1525;
+    }
+
+    .speed-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .speed-btn {
+      width: 32px;
+      height: 28px;
+      border: 1px solid #2a4a6b;
+      border-radius: 6px;
+      background: #132238;
+      color: #8ecae6;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .speed-btn.active {
+      background: #1a6b5a;
+      border-color: #4fd1c5;
+      color: #fff;
+    }
+
+    /* --- Log Panel --- */
+    .log-panel {
+      border-left: 1px solid #1e3a5f;
+      display: flex;
+      flex-direction: column;
+      background: #0b1120;
+    }
+
+    .log-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #1a2744;
+      font-size: 13px;
+      font-weight: 700;
+      color: #4fd1c5;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .log-count {
+      font-size: 11px;
+      background: #1a3050;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: #8ecae6;
+    }
+
+    .log-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .log-entry {
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      word-break: break-all;
+    }
+
+    .log-entry.info { color: #8ecae6; }
+    .log-entry.success { color: #48bb78; }
+    .log-entry.warn { color: #ecc94b; }
+    .log-entry.error { color: #f56565; }
+    .log-entry.cmd { color: #b794f4; }
+    .log-entry.heartbeat { color: #4a5568; }
+
+    .log-time { color: #4a5568; margin-right: 6px; }
+
+    /* Stats bar */
+    .stats-bar {
+      padding: 10px 16px;
+      border-top: 1px solid #1a2744;
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+      color: #667;
+    }
+
+    .stat-item { display: flex; align-items: center; gap: 4px; }
+    .stat-value { color: #4fd1c5; font-weight: 700; }
+
+    @media (max-width: 900px) {
+      .main { grid-template-columns: 1fr; }
+      .log-panel { border-left: none; border-top: 1px solid #1e3a5f; max-height: 300px; }
+      .house-grid { min-height: 400px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SMART HOME SIMULATOR</h1>
+  <div class="header-status">
+    <span class="status-label" id="statusLabel">Disconnected</span>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+</div>
+
+<div class="controls-bar">
+  <button class="btn primary" id="btnConnect" onclick="connectDevices()">Connect Devices</button>
+  <button class="btn" id="btnHeartbeat" onclick="sendAllHeartbeats()" disabled>Send Heartbeats</button>
+  <button class="btn danger" id="btnDisconnect" onclick="disconnectAll()" disabled>Disconnect All</button>
+  <button class="btn" onclick="clearLog()">Clear Log</button>
+</div>
+
+<div class="main">
+  <div class="house-view">
+    <div class="house-grid" id="houseGrid"></div>
+  </div>
+  <div class="log-panel">
+    <div class="log-header">
+      Event Log <span class="log-count" id="logCount">0</span>
+    </div>
+    <div class="log-body" id="logBody"></div>
+    <div class="stats-bar">
+      <div class="stat-item">Heartbeats: <span class="stat-value" id="statHeartbeats">0</span></div>
+      <div class="stat-item">Commands: <span class="stat-value" id="statCommands">0</span></div>
+      <div class="stat-item">Errors: <span class="stat-value" id="statErrors">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8000/api/v1";
+
+// --- Device Definitions ---
+const ROOMS = {
+  "Living Room": [
+    { key: "living_ceiling_light", name: "Ceiling Light", type: "light", state: { power: false, brightness: 80 } },
+    { key: "living_fan", name: "Ceiling Fan", type: "fan", state: { power: false, speed: 1 } },
+  ],
+  "Bedroom": [
+    { key: "bedroom_lamp", name: "Bedside Lamp", type: "light", state: { power: false, brightness: 50 } },
+    { key: "bedroom_fan", name: "Desk Fan", type: "fan", state: { power: false, speed: 2 } },
+  ],
+  "Kitchen": [
+    { key: "kitchen_light", name: "Kitchen Light", type: "light", state: { power: false, brightness: 100 } },
+  ],
+  "Bathroom": [
+    { key: "bathroom_light", name: "Mirror Light", type: "light", state: { power: false, brightness: 60 } },
+  ],
+};
+
+let devices = {};  // key -> { uuid, ...def, state }
+let heartbeatInterval = null;
+let commandPollInterval = null;
+let stats = { heartbeats: 0, commands: 0, errors: 0 };
+let logEntries = 0;
+let connected = false;
+
+// --- Logging ---
+function log(msg, level = "info") {
+  const body = document.getElementById("logBody");
+  const time = new Date().toLocaleTimeString("en-GB", { hour12: false });
+  const entry = document.createElement("div");
+  entry.className = `log-entry ${level}`;
+  entry.innerHTML = `<span class="log-time">${time}</span>${msg}`;
+  body.appendChild(entry);
+  body.scrollTop = body.scrollHeight;
+  logEntries++;
+  document.getElementById("logCount").textContent = logEntries;
+}
+
+function clearLog() {
+  document.getElementById("logBody").innerHTML = "";
+  logEntries = 0;
+  document.getElementById("logCount").textContent = "0";
+}
+
+function updateStats() {
+  document.getElementById("statHeartbeats").textContent = stats.heartbeats;
+  document.getElementById("statCommands").textContent = stats.commands;
+  document.getElementById("statErrors").textContent = stats.errors;
+}
+
+function setStatus(state) {
+  const dot = document.getElementById("statusDot");
+  const label = document.getElementById("statusLabel");
+  dot.className = `status-dot ${state}`;
+  if (state === "online") label.textContent = "Connected";
+  else if (state === "connecting") label.textContent = "Connecting...";
+  else if (state === "error") label.textContent = "Error";
+  else label.textContent = "Disconnected";
+}
+
+// --- API Calls ---
+async function apiCall(method, path, body = null) {
+  const opts = { method, headers: { "Content-Type": "application/json" } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API}${path}`, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  return data;
+}
+
+// --- Connect ---
+async function connectDevices() {
+  setStatus("connecting");
+  log("Registering devices with backend...", "info");
+
+  const payload = { devices: {} };
+
+  for (const [room, defs] of Object.entries(ROOMS)) {
+    for (const def of defs) {
+      const caps = def.type === "light"
+        ? { power: { type: "boolean", writable: true }, brightness: { type: "integer", min: 0, max: 100, writable: true } }
+        : { power: { type: "boolean", writable: true }, speed: { type: "integer", min: 1, max: 3, writable: true } };
+
+      const existingUuid = devices[def.key]?.uuid;
+      const newUuid = existingUuid || crypto.randomUUID();
+      payload.devices[def.key] = {
+        device_uuid: newUuid,
+        type: def.type,
+        name: def.name,
+        room: room,
+        transport: { mode: "rest", protocol: "rest" },
+        capabilities: caps,
+        state: { ...def.state },
+        status: { connected: true },
+      };
+    }
+  }
+
+  try {
+    const res = await apiCall("POST", "/device-gateway/connect", payload);
+    log(`Backend responded: ${res.message}`, "success");
+
+    // Map UUIDs back
+    for (const [room, defs] of Object.entries(ROOMS)) {
+      for (const def of defs) {
+        const uuid = payload.devices[def.key].device_uuid;
+        devices[def.key] = { ...def, room, uuid, state: { ...def.state } };
+        log(`  ${def.name} (${room}) -> ${uuid.substring(0, 8)}...`, "success");
+      }
+    }
+
+    connected = true;
+    document.getElementById("btnConnect").disabled = true;
+    document.getElementById("btnHeartbeat").disabled = false;
+    document.getElementById("btnDisconnect").disabled = false;
+    setStatus("online");
+
+    // Start background loops
+    startHeartbeats();
+    startCommandPolling();
+    renderHouse();
+  } catch (err) {
+    log(`Connection failed: ${err.message}`, "error");
+    stats.errors++;
+    updateStats();
+    setStatus("error");
+  }
+}
+
+// --- Heartbeats ---
+function startHeartbeats() {
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(sendAllHeartbeats, 5000);
+  sendAllHeartbeats();
+}
+
+async function sendAllHeartbeats() {
+  if (!connected) return;
+  for (const dev of Object.values(devices)) {
+    try {
+      await apiCall("POST", `/device-gateway/${dev.uuid}/heartbeat`);
+      stats.heartbeats++;
+    } catch (err) {
+      log(`Heartbeat failed for ${dev.name}: ${err.message}`, "error");
+      stats.errors++;
+    }
+  }
+  log(`Heartbeats sent (${Object.keys(devices).length} devices)`, "heartbeat");
+  updateStats();
+}
+
+// --- Command Polling ---
+function startCommandPolling() {
+  if (commandPollInterval) clearInterval(commandPollInterval);
+  commandPollInterval = setInterval(pollAllCommands, 1000);
+}
+
+async function pollAllCommands() {
+  if (!connected) return;
+  for (const [key, dev] of Object.entries(devices)) {
+    try {
+      const res = await apiCall("GET", `/device-gateway/${dev.uuid}/commands/next`);
+      if (res.command) {
+        stats.commands++;
+        const cmd = res.command;
+        log(`CMD ${dev.name}: ${JSON.stringify(cmd.state)}`, "cmd");
+
+        // Apply command to local state
+        for (const [prop, val] of Object.entries(cmd.state)) {
+          dev.state[prop] = val;
+        }
+
+        // Send ack
+        await apiCall("POST", `/device-gateway/${dev.uuid}/command-ack`, {
+          status: "ok",
+          reported_state: { ...dev.state },
+        });
+        log(`ACK ${dev.name}: state confirmed`, "success");
+
+        renderHouse();
+        updateStats();
+      }
+    } catch (err) {
+      // Silent on 404s during polling
+      if (!err.message.includes("404")) {
+        log(`Poll error ${dev.name}: ${err.message}`, "error");
+        stats.errors++;
+        updateStats();
+      }
+    }
+  }
+}
+
+// --- Disconnect ---
+async function disconnectAll() {
+  connected = false;
+  if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+  if (commandPollInterval) { clearInterval(commandPollInterval); commandPollInterval = null; }
+
+  for (const dev of Object.values(devices)) {
+    try {
+      await apiCall("DELETE", `/devices/${dev.uuid}`);
+      log(`Deleted ${dev.name}`, "warn");
+    } catch (err) {
+      log(`Delete failed ${dev.name}: ${err.message}`, "error");
+    }
+  }
+
+  devices = {};
+  document.getElementById("btnConnect").disabled = false;
+  document.getElementById("btnHeartbeat").disabled = true;
+  document.getElementById("btnDisconnect").disabled = true;
+  setStatus("");
+  renderHouse();
+  log("All devices disconnected", "warn");
+}
+
+// --- Local Toggle (also sends command via the normal API path) ---
+async function toggleDevice(key) {
+  const dev = devices[key];
+  if (!dev || !connected) return;
+  dev.state.power = !dev.state.power;
+  renderHouse();
+  try {
+    await apiCall("POST", `/devices/${dev.uuid}/commands`, { state: { power: dev.state.power } });
+    log(`Sent toggle ${dev.name} -> power=${dev.state.power}`, "cmd");
+  } catch (err) {
+    log(`Toggle failed ${dev.name}: ${err.message}`, "error");
+    stats.errors++;
+    updateStats();
+  }
+}
+
+async function setDeviceBrightness(key, val) {
+  const dev = devices[key];
+  if (!dev || !connected) return;
+  dev.state.brightness = parseInt(val);
+  renderHouse();
+  try {
+    await apiCall("POST", `/devices/${dev.uuid}/commands`, { state: { brightness: dev.state.brightness } });
+    log(`Brightness ${dev.name} -> ${val}`, "cmd");
+  } catch (err) {
+    log(`Brightness failed: ${err.message}`, "error");
+    stats.errors++;
+    updateStats();
+  }
+}
+
+async function setDeviceSpeed(key, val) {
+  const dev = devices[key];
+  if (!dev || !connected) return;
+  dev.state.speed = parseInt(val);
+  renderHouse();
+  try {
+    await apiCall("POST", `/devices/${dev.uuid}/commands`, { state: { speed: dev.state.speed } });
+    log(`Speed ${dev.name} -> ${val}`, "cmd");
+  } catch (err) {
+    log(`Speed failed: ${err.message}`, "error");
+    stats.errors++;
+    updateStats();
+  }
+}
+
+// --- Render ---
+function renderHouse() {
+  const grid = document.getElementById("houseGrid");
+  grid.innerHTML = "";
+
+  for (const [room, defs] of Object.entries(ROOMS)) {
+    const roomEl = document.createElement("div");
+    const hasActive = defs.some(d => devices[d.key]?.state?.power);
+    roomEl.className = `room${hasActive ? " has-active" : ""}`;
+
+    let devicesHtml = "";
+    for (const def of defs) {
+      const dev = devices[def.key];
+      const state = dev?.state || def.state;
+      const isOn = state.power;
+      const key = def.key;
+
+      const iconClass = def.type === "light" ? "light-icon" : "";
+      const icon = def.type === "light" ? (isOn ? "\u{1F4A1}" : "\u{1F4A1}") : "\u{1F32C}\u{FE0F}";
+
+      let controlsHtml = "";
+      if (def.type === "light") {
+        controlsHtml = `
+          <div class="slider-row">
+            <span class="slider-label">Brightness</span>
+            <input type="range" min="0" max="100" value="${state.brightness || 0}"
+              oninput="setDeviceBrightness('${key}', this.value)" ${!connected ? "disabled" : ""} />
+            <span class="slider-value">${state.brightness || 0}%</span>
+          </div>`;
+      } else {
+        const speeds = [1, 2, 3].map(s =>
+          `<button class="speed-btn${state.speed === s ? " active" : ""}"
+            onclick="setDeviceSpeed('${key}', ${s})" ${!connected ? "disabled" : ""}>${s}</button>`
+        ).join("");
+        controlsHtml = `
+          <div class="slider-row">
+            <span class="slider-label">Speed</span>
+            <div class="speed-buttons">${speeds}</div>
+          </div>`;
+      }
+
+      devicesHtml += `
+        <div class="device-card${isOn ? " on" : ""}">
+          <div class="device-top">
+            <div class="device-info">
+              <div class="device-icon ${iconClass}">${icon}</div>
+              <div>
+                <div class="device-name">${def.name}</div>
+                <div class="device-type">${def.type}</div>
+              </div>
+            </div>
+            <div class="toggle${isOn ? " on" : ""}" onclick="toggleDevice('${key}')"></div>
+          </div>
+          <div class="device-controls">${controlsHtml}</div>
+        </div>`;
+    }
+
+    roomEl.innerHTML = `
+      <div class="room-name">${room}</div>
+      <div class="room-devices">${devicesHtml}</div>`;
+
+    grid.appendChild(roomEl);
+  }
+}
+
+// Initial render
+renderHouse();
+log("Simulator ready. Click 'Connect Devices' to register with backend.", "info");
+</script>
+
+</body>
+</html>

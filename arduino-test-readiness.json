@@ -1,0 +1,204 @@
+{
+  "report": {
+    "title": "Arduino E2E Test Readiness Report",
+    "date": "2026-04-03",
+    "branch": "device/144-task-create-bt-connection-and-send-device-data-to-server-and-manage-data-constraint",
+    "purpose": "Pre-flight checklist for plugging in the real Keyestudio Smart Home Arduino and testing end-to-end"
+  },
+  "message_size_audit": {
+    "status": "ALL PASS",
+    "arduino_to_server": {
+      "CONNECT_controller": { "bytes": 77, "limit": 128, "ok": true },
+      "CONNECT_light": { "bytes": 86, "limit": 128, "ok": true },
+      "CONNECT_door": { "bytes": 86, "limit": 128, "ok": true },
+      "CONNECT_fan": { "bytes": 82, "limit": 128, "ok": true },
+      "HEARTBEAT": { "bytes": 50, "limit": 128, "ok": true },
+      "COMMAND_ACK": { "bytes": 101, "limit": 256, "ok": true }
+    },
+    "server_to_arduino": {
+      "PING": { "bytes": 17, "limit": 256, "ok": true },
+      "COMMAND_light": { "bytes": 72, "limit": 256, "ok": true },
+      "COMMAND_door": { "bytes": 72, "limit": 256, "ok": true },
+      "COMMAND_fan": { "bytes": 70, "limit": 256, "ok": true }
+    }
+  },
+  "bugs_that_will_hit_on_test_day": [
+    {
+      "id": "A-1",
+      "severity": "critical",
+      "title": "Arduino CONNECT uses 'device_type' but DeviceSchema stores it as 'type'",
+      "description": "arduino.ino sends {\"device_type\": \"light\"} but bridge_message_handler.py reads parsed.get('device_type') and passes it as 'type' to ConnectDeviceBody. This works in the handler BUT _build_device() on the e2etest branch uses data.get('type') while this branch's register_device() also uses data.get('type'). The bridge handler correctly maps device_type -> type in the payload construction on line 50. HOWEVER: if this branch gets merged with main, the Firebase _build_device() version will also need this mapping. Verify after merge.",
+      "file": "services/src/bridge/bridge_message_handler.py:29,50",
+      "action": "Verify after merging with main branch that the device_type -> type mapping is preserved"
+    },
+    {
+      "id": "A-2",
+      "severity": "critical",
+      "title": "Arduino devices register with NO transport field — commands will go to bridge (correct) but fragile",
+      "description": "The bridge_message_handler CONNECT handler builds the payload with only device_uuid, type, and state — no transport field. This means transport={} in the stored device. In device_service.post_command(), the check is: if transport_mode == 'rest' or transport_protocol == 'rest' → queue, else → bridge. Since transport is empty, it falls through to bridge dispatch (correct behavior). BUT this is implicit — if anyone adds a default transport, commands will break. Should explicitly set transport={'mode':'bridge','protocol':'ble'} in the handler.",
+      "file": "services/src/bridge/bridge_message_handler.py:47-53",
+      "action": "Add transport field to CONNECT payload: {\"mode\": \"bridge\", \"protocol\": \"ble\"}"
+    },
+    {
+      "id": "A-3",
+      "severity": "high",
+      "title": "Only arduino-1 sends heartbeats — light-1, door-1, fan-1 will show as offline after 30s",
+      "description": "arduino.ino only sends HEARTBEAT for device_uuid='arduino-1'. The other 3 devices (light-1, door-1, fan-1) never send heartbeats. After 30 seconds (OFFLINE_THRESHOLD_SECONDS), they will be marked offline by is_device_online(). The dashboard will show them as disconnected even though they're physically connected via the same Arduino.",
+      "file": "devices/arduino-code/arduino/arduino.ino:73-81",
+      "action": "Either: (a) send heartbeats for all 4 device UUIDs, (b) update heartbeat logic to mark all devices from same controller as online, or (c) increase offline threshold"
+    },
+    {
+      "id": "A-4",
+      "severity": "high",
+      "title": "BLE address hardcoded to specific HM-10 module",
+      "description": "ble_controller.py has HMSOFT_ADDRESS='94:A9:A8:18:0B:AC' and ALLOWED_DEVICE_NAMES={'94:A9:A8:18:0B:AC'}. If the test Arduino has a different HM-10 module (different MAC address), the bridge will never connect. You need to know the MAC address of YOUR Arduino's HM-10 before test day.",
+      "file": "services/src/bridge/ble_controller.py:16-18",
+      "action": "Before test: scan for BLE devices to find the HM-10 MAC address, then update ALLOWED_DEVICE_NAMES. Or move to .env config."
+    },
+    {
+      "id": "A-5",
+      "severity": "high",
+      "title": "CONNECT_ACK is disabled — Arduino never knows if registration succeeded",
+      "description": "bridge_message_handler.py lines 60-80 are commented out. The Arduino sends CONNECT but never receives confirmation. Currently the Arduino doesn't check for ACK (it just continues), so this works. But if Arduino code is updated to expect ACK, it will hang.",
+      "file": "services/src/bridge/bridge_message_handler.py:60-80",
+      "action": "Keep disabled for now. Document that Arduino must NOT wait for ACK."
+    },
+    {
+      "id": "A-6",
+      "severity": "high",
+      "title": "mark_stale_devices_offline not present on this branch — but will appear after merge with main",
+      "description": "This branch uses in-memory device_store.py which has no mark_stale_devices_offline(). Main branch has it in Firebase device_store.py and it's called every heartbeat. After merge, the O(N) scan per heartbeat will fire. Not a blocker but affects performance.",
+      "file": "services/src/services/device_service.py:100 (main branch)",
+      "action": "Be aware after merge. Consider moving to background task."
+    },
+    {
+      "id": "A-7",
+      "severity": "medium",
+      "title": "Fan pin logic is inverted in Arduino — server must send correct boolean",
+      "description": "arduino.ino line 207: digitalWrite(fanPin, fanPower ? LOW : HIGH). The fan hardware uses inverted logic (LOW = on, HIGH = off). The server sends {\"power\": true} and the Arduino correctly handles the inversion. This is fine, but anyone testing who sees the fan not responding might think the command failed — it's just inverted hardware.",
+      "file": "devices/arduino-code/arduino/arduino.ino:207",
+      "action": "Document for testers: fan uses inverted pin logic. power=true means pin goes LOW."
+    },
+    {
+      "id": "A-8",
+      "severity": "medium",
+      "title": "Door state uses string 'open'/'closed' not boolean — inconsistent with light/fan",
+      "description": "Light and fan use {\"power\": true/false} (boolean), but door uses {\"open\": \"open\"} or {\"open\": \"closed\"} (string). The frontend DeviceCard component only handles 'power' and 'brightness' and 'speed' — there's no 'open' handler. The door won't be controllable from the Next.js dashboard without frontend changes.",
+      "file": "devices/arduino-code/arduino/arduino.ino:177-197 and apps/web/src/components/DeviceCard.tsx",
+      "action": "Either add door control to frontend, or change Arduino to use power boolean for door."
+    },
+    {
+      "id": "A-9",
+      "severity": "medium",
+      "title": "Serial.readStringUntil('\\n') has default 1-second timeout on Arduino",
+      "description": "Arduino's readStringUntil() blocks for up to 1 second waiting for the delimiter. If the BLE module splits a JSON message across multiple BLE packets with a gap > 1s, the Arduino will read a partial JSON and fail to parse. At 9600 baud, a 72-byte command takes ~75ms, well under the timeout. But BLE MTU fragmentation + retransmission could introduce delays.",
+      "file": "devices/arduino-code/arduino/arduino.ino:129",
+      "action": "Monitor for 'invalid_json' errors in Arduino serial output during testing. If frequent, add Serial.setTimeout(2000)."
+    },
+    {
+      "id": "A-10",
+      "severity": "medium",
+      "title": "Arduino LCD shows raw JSON on line 133 — will overflow 16-char display",
+      "description": "lcd.print(input.substring(0, 16)) prints the first 16 chars of incoming JSON. For a COMMAND, this shows: {\"type\":\"COMMAN which is not useful for debugging. Consider showing device + action instead.",
+      "file": "devices/arduino-code/arduino/arduino.ino:133",
+      "action": "Low priority cosmetic issue. Useful for debugging that data is arriving."
+    },
+    {
+      "id": "A-11",
+      "severity": "low",
+      "title": "No error recovery if BLE disconnects mid-session",
+      "description": "If BLE disconnects, ble_controller.py clears the client and the bridge retries after RECONNECT_DELAY (5s). But the Arduino continues sending heartbeats to a disconnected BLE link. The Arduino doesn't detect disconnection — it just keeps writing to Serial. The HM-10 module may buffer some data, but messages sent during disconnection are lost.",
+      "file": "services/src/bridge/ble_controller.py:87-88",
+      "action": "On reconnect, bridge sends PING again (line 80) which triggers re-registration. This is the recovery path — verify it works."
+    },
+    {
+      "id": "A-12",
+      "severity": "low",
+      "title": "response=False on BLE write means no delivery guarantee",
+      "description": "ble_controller.py line 32 uses response=False for write_gatt_char. This means the server doesn't wait for BLE write confirmation. If the HM-10 buffer is full or the Arduino is busy processing, the write may be silently dropped.",
+      "file": "services/src/bridge/ble_controller.py:32",
+      "action": "If commands are being lost during testing, try changing back to response=True and increasing CMD_DELAY."
+    }
+  ],
+  "pre_test_checklist": [
+    {
+      "step": 1,
+      "task": "Find the HM-10 MAC address",
+      "how": "Run a BLE scan: python3 -c \"import asyncio; from bleak import BleakScanner; asyncio.run(BleakScanner.discover(timeout=5.0))\" — look for 'HMSoft' device, note its address",
+      "then": "Update ALLOWED_DEVICE_NAMES in ble_controller.py:18 with the correct address"
+    },
+    {
+      "step": 2,
+      "task": "Upload arduino.ino to the Arduino",
+      "how": "Open devices/arduino-code/arduino/arduino.ino in Arduino IDE, install ArduinoJson library, select correct board (Keyestudio PLUS / Arduino Uno), upload",
+      "then": "Open Serial Monitor at 9600 baud to verify it's running (should see heartbeat JSON every 5s)"
+    },
+    {
+      "step": 3,
+      "task": "Set correct Firebase URL in .env",
+      "how": "Ensure FIREBASE_DATABASE_URL=https://interactive-house-d3e5c-default-rtdb.europe-west1.firebasedatabase.app",
+      "then": "This was wrong before (US instead of EU region) — already fixed in our .env"
+    },
+    {
+      "step": 4,
+      "task": "Start the backend with bridge ENABLED",
+      "how": "cd interactive-house && export ENABLE_BRIDGE=true && source services/venv/bin/activate && python3 -m uvicorn services.src.main:app --host 0.0.0.0 --port 8000",
+      "then": "Watch logs for 'Scanning for BLE devices...' and 'Connected via Bluetooth'"
+    },
+    {
+      "step": 5,
+      "task": "Verify PING → CONNECT flow",
+      "how": "Watch logs for: 'Sent BLE JSON: {\"type\":\"PING\"}' then 4x 'Device connected: uuid=...'",
+      "then": "Check GET /api/v1/devices — should show arduino-1, light-1, door-1, fan-1"
+    },
+    {
+      "step": 6,
+      "task": "Test a command",
+      "how": "curl -X POST http://localhost:8000/api/v1/devices/light-1/commands -H 'Content-Type: application/json' -d '{\"state\":{\"power\":true}}'",
+      "then": "Watch logs for 'Sent BLE JSON: ...' and Arduino LCD should show 'Lights ON'. Check logs for COMMAND_ACK."
+    },
+    {
+      "step": 7,
+      "task": "Test all devices",
+      "how": "Send commands to light-1 (power), door-1 (open), fan-1 (power)",
+      "then": "Verify physical actuators respond and ACKs come back"
+    },
+    {
+      "step": 8,
+      "task": "Start frontend and test from dashboard",
+      "how": "cd apps/web && npm run dev — open localhost:3000",
+      "then": "NOTE: Dashboard won't show device names (known bug H-6). Toggle power on device cards — commands should reach Arduino."
+    }
+  ],
+  "what_works": [
+    "Message sizes are all within Arduino StaticJsonDocument limits",
+    "Arduino sends devices one-at-a-time with 100ms gaps (avoids SRAM overflow)",
+    "Bridge handles individual CONNECT messages correctly",
+    "PING → CONNECT handshake avoids data loss on BLE connection",
+    "Command dispatch correctly routes non-REST devices through bridge",
+    "In-memory device store works for local testing without Firebase",
+    "ArduinoJson library handles JSON parse/serialize within 2KB SRAM"
+  ],
+  "what_needs_fixing_before_test": [
+    {
+      "priority": "must_fix",
+      "issue": "Update HM-10 MAC address in ble_controller.py to match YOUR Arduino's module",
+      "effort": "1 minute — scan and replace address"
+    },
+    {
+      "priority": "should_fix",
+      "issue": "Add heartbeats for all 4 devices (not just arduino-1) or they'll show offline",
+      "effort": "5 minutes — add 3 more heartbeat calls in arduino.ino sendHeartbeat()"
+    },
+    {
+      "priority": "should_fix",
+      "issue": "Add transport={mode:bridge,protocol:ble} to CONNECT payload in bridge handler",
+      "effort": "2 minutes — add to payload dict in bridge_message_handler.py:49"
+    },
+    {
+      "priority": "nice_to_have",
+      "issue": "Frontend has no door control (only power/brightness/speed, not open/closed)",
+      "effort": "30 minutes — add door toggle to DeviceCard.tsx"
+    }
+  ]
+}

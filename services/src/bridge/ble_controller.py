@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 
 from bleak import BleakClient, BleakScanner
 
@@ -13,7 +14,11 @@ from services.src.config.bridge_config import HM10_UUID, CMD_DELAY
 
 logger = get_logger("ble_controller")
 
-ALLOWED_DEVICE_NAMES = {"HMSoft"}  # Change to the actual name of your BLE device if different or add more names as needed
+# HM-10 BLE address — set via env or update before test day
+# To find your HM-10 address, run a BLE scan and look for "HMSoft"
+HMSOFT_ADDRESS = os.getenv("HM10_ADDRESS", "")
+# Match by address if set, otherwise fall back to name-based matching
+ALLOWED_DEVICE_NAMES = {"HMSoft"}
 
 
 def on_disconnect(client):
@@ -27,9 +32,9 @@ async def send_ble_json(client: BleakClient, payload: dict) -> bool:
 
     try:
         message = json.dumps(payload) + "\n"
-        await client.write_gatt_char(HM10_UUID, message.encode(), response=True)
+        await client.write_gatt_char(HM10_UUID, message.encode(), response=False)
         await asyncio.sleep(CMD_DELAY)
-        logger.debug(f"Sent BLE JSON: {message.strip()}")
+        logger.info(f"Sent BLE JSON: {message.strip()}")
         return True
     except Exception as e:
         logger.error(f"BLE write failed: {e}")
@@ -43,6 +48,7 @@ def make_notification_handler(client: BleakClient):
         nonlocal buffer
 
         chunk = data.decode(errors="ignore")
+        logger.info(f"Raw BLE chunk received: {chunk!r}")
         buffer += chunk
 
         while "\n" in buffer:
@@ -66,6 +72,10 @@ async def run_ble_session(client: BleakClient):
 
     try:
         await client.start_notify(HM10_UUID, handler)
+        # Wait for BLE notification to settle before sending PING
+        await asyncio.sleep(3)
+        # Send PING to trigger Arduino to send device data AFTER bridge is ready
+        await send_ble_json(client, {"type": "PING"})
     except Exception as e:
         logger.warning(f"Failed to enable notifications on {HM10_UUID}: {e}")
 
@@ -85,10 +95,21 @@ async def run_ble() -> bool:
         logger.warning("No BLE devices found")
         return False
 
-    candidates = [
-        device for device in devices
-        if (device.name or "").strip() in ALLOWED_DEVICE_NAMES
-    ]
+    # Log all discovered devices for debugging
+    for device in devices:
+        logger.info(f"Found BLE device: name={device.name}, address={device.address}")
+
+    # Match by address first (more reliable), then by name
+    if HMSOFT_ADDRESS:
+        candidates = [
+            device for device in devices
+            if (device.address or "").strip() == HMSOFT_ADDRESS
+        ]
+    else:
+        candidates = [
+            device for device in devices
+            if (device.name or "").strip() in ALLOWED_DEVICE_NAMES
+        ]
 
     if not candidates:
         logger.warning("No allowed BLE device found")

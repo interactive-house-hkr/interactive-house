@@ -33,6 +33,8 @@ def _build_device(device_uuid: str, data: Dict[str, Any], existing: Optional[Dic
 
     return {
         "device_uuid": device_uuid,
+        "name": data.get("name", existing.get("name")),
+        "room": data.get("room", existing.get("room")),
         "type": data.get("type", existing.get("type")),
         "transport": data.get("transport", existing.get("transport", {})),
         "capabilities": data.get("capabilities", existing.get("capabilities", {})),

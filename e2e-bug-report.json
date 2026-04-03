@@ -1,0 +1,345 @@
+{
+  "report": {
+    "title": "Interactive House — E2E Bug Report",
+    "date": "2026-04-03",
+    "branch": "device/179-task-e2etest",
+    "tester": "Oliver Brantin",
+    "total_bugs": 30,
+    "summary": {
+      "critical": 3,
+      "high": 8,
+      "medium": 8,
+      "low": 4,
+      "e2e_test_failures": 7
+    }
+  },
+  "e2e_test_results": {
+    "passed": [
+      "Backend server starts and /docs returns 200",
+      "Frontend Next.js serves dashboard at :3000",
+      "Firebase Realtime DB connectivity (europe-west1 region)",
+      "POST /auth/register creates user and returns tokens",
+      "POST /auth/register duplicate user returns 400",
+      "POST /auth/login with correct credentials returns tokens",
+      "POST /auth/login with wrong password returns 401",
+      "POST /auth/register with short username returns 422",
+      "POST /device-gateway/connect registers devices in Firebase",
+      "POST /device-gateway/{uuid}/heartbeat updates last_seen",
+      "GET /devices returns all registered devices with is_online",
+      "GET /devices/{uuid} returns single device",
+      "GET /devices/{unknown} returns 404",
+      "POST /devices/{uuid}/commands queues command for REST device",
+      "GET /device-gateway/{uuid}/commands/next returns queued command",
+      "GET /device-gateway/{uuid}/commands/next second call returns null (queue empty)",
+      "POST /device-gateway/{uuid}/command-ack updates device state in Firebase",
+      "DELETE /devices/{uuid} removes device",
+      "DELETE /devices/{uuid} second call returns 404",
+      "POST /devices/{uuid}/commands after delete returns 404",
+      "POST /device-gateway/connect with empty devices dict returns 200 (silent no-op)",
+      "POST /devices/{uuid}/commands with missing state returns 422"
+    ],
+    "failed": [
+      {
+        "test": "GET /devices?type=light returns only lights",
+        "expected": "Filtered list of light devices",
+        "actual": "Empty list — filter uses wrong key 'device_type' instead of 'type'",
+        "bug_ref": "H-7"
+      },
+      {
+        "test": "GET /devices/events returns events endpoint",
+        "expected": "Events response or TODO stub",
+        "actual": "404 Device not found — route shadowed by /{device_uuid}",
+        "bug_ref": "H-8"
+      },
+      {
+        "test": "Frontend displays device name and room",
+        "expected": "Device cards show name and room labels",
+        "actual": "Name and room are undefined — backend drops these fields",
+        "bug_ref": "H-6"
+      },
+      {
+        "test": "Frontend rooms filter works correctly",
+        "expected": "Room buttons with proper labels",
+        "actual": "Blank room button, React key warning for undefined",
+        "bug_ref": "M-7"
+      },
+      {
+        "test": "POST /device-gateway/connect with null device_uuid generates UUID server-side",
+        "expected": "Server generates UUID and returns in generated_uuids",
+        "actual": "422 validation error — DeviceSchema requires str, rejects null",
+        "bug_ref": "M-2"
+      },
+      {
+        "test": "Command ack status is validated",
+        "expected": "Only 'ok' or 'error' accepted",
+        "actual": "Any string accepted — 'HACKED' persisted to Firebase as last_command_status",
+        "bug_ref": "M-3"
+      },
+      {
+        "test": "Firebase database URL resolves correctly",
+        "expected": "Default URL works",
+        "actual": "500 error — DB is in europe-west1 region, not default US. Required URL: https://interactive-house-d3e5c-default-rtdb.europe-west1.firebasedatabase.app",
+        "bug_ref": "E-1"
+      }
+    ]
+  },
+  "bugs": {
+    "critical": [
+      {
+        "id": "C-1",
+        "title": "Firebase service account private key on disk",
+        "severity": "critical",
+        "category": "security",
+        "file": "services/src/config/firebase-service-account.json",
+        "line": null,
+        "description": "Full RSA private key, private_key_id, client_email, and client_id for the interactive-house-d3e5c Firebase project are present on disk. Anyone with repo access has full Admin SDK access to the Firebase Realtime Database.",
+        "recommendation": "Rotate the service account key immediately via Firebase Console. Ensure .gitignore covers the file and verify it was never committed to git history."
+      },
+      {
+        "id": "C-2",
+        "title": "Weak hardcoded JWT secret key in .env",
+        "severity": "critical",
+        "category": "security",
+        "file": "services/.env",
+        "line": 17,
+        "description": "SECRET_KEY is set to 'super-secret-jwt-key-change-me'. Any token signed with this key can be forged offline. HS256 with a weak secret is equivalent to no signature.",
+        "recommendation": "Replace with at least 256 bits of random entropy: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+      },
+      {
+        "id": "C-3",
+        "title": "Live Firebase project credentials in .env",
+        "severity": "critical",
+        "category": "security",
+        "file": "services/.env",
+        "line": "10-13",
+        "description": "Live FIREBASE_PROJECT_ID and FIREBASE_DATABASE_URL values are in the .env file. Combined with C-1, this provides full database access.",
+        "recommendation": "Never commit .env to version control. Use .env.example with placeholder values only."
+      }
+    ],
+    "high": [
+      {
+        "id": "H-1",
+        "title": "optional_user always returns None — all device routes unprotected",
+        "severity": "high",
+        "category": "security",
+        "file": "services/src/dependencies/auth.py",
+        "line": "6-7",
+        "description": "The optional_user dependency unconditionally returns None without validating any token. Every device route uses Depends(optional_user), meaning all device listing, reading, deleting, and commanding is open to any unauthenticated caller. current_user exists and works but is never used.",
+        "recommendation": "Replace optional_user with current_user on all device endpoints, or implement proper API key validation."
+      },
+      {
+        "id": "H-2",
+        "title": "Unauthenticated DELETE endpoint for devices",
+        "severity": "high",
+        "category": "security",
+        "file": "services/src/routes/device_routes.py",
+        "line": 25,
+        "description": "DELETE /api/v1/devices/{device_uuid} uses optional_user (always None). Anyone can permanently delete any device from Firebase with no credentials.",
+        "recommendation": "Require authentication for destructive operations."
+      },
+      {
+        "id": "H-3",
+        "title": "Firebase path injection via unsanitized device_uuid",
+        "severity": "high",
+        "category": "security",
+        "file": "services/src/firebase/device_store.py",
+        "line": "16-20",
+        "description": "Paths are constructed as f\"{DEVICES_PATH}/{device_uuid}\" with no validation. A device_uuid containing '/' traverses outside the devices/ subtree and can read, write, or delete arbitrary Firebase nodes (e.g. '../../users/admin').",
+        "recommendation": "Validate device_uuid format — reject any value containing '/', '.', '#', '$', '[', or ']' (Firebase forbidden characters). Use UUID format validation."
+      },
+      {
+        "id": "H-4",
+        "title": "Device gateway routes have zero auth dependency",
+        "severity": "high",
+        "category": "security",
+        "file": "services/src/routes/device_gateway_routes.py",
+        "line": "13-34",
+        "description": "Unlike other routes that at least declare optional_user, device gateway routes have no auth dependency at all. Any caller can connect arbitrary devices, poll commands, and send acks.",
+        "recommendation": "Implement device API key or pre-shared secret authentication for gateway endpoints."
+      },
+      {
+        "id": "H-5",
+        "title": "API_KEY loaded from settings but never enforced",
+        "severity": "high",
+        "category": "security",
+        "file": "services/src/config/settings.py",
+        "line": 14,
+        "description": "api_key: str is declared in Settings and loaded from .env, but is never referenced in any route, dependency, or middleware. Creates a false sense of security.",
+        "recommendation": "Implement API key middleware or dependency that validates the API_KEY header on protected routes."
+      },
+      {
+        "id": "H-6",
+        "title": "_build_device() drops name and room fields — frontend shows undefined",
+        "severity": "high",
+        "category": "data",
+        "file": "services/src/firebase/device_store.py",
+        "line": "34-42",
+        "description": "_build_device() only keeps device_uuid, type, transport, capabilities, state, status, and last_seen. Fields like name and room sent in the connect payload are silently discarded. The frontend's mapDevice() reads d.name and d.room which are always undefined.",
+        "recommendation": "Add name and room to _build_device() return dict, or add them as fields to DeviceSchema."
+      },
+      {
+        "id": "H-7",
+        "title": "list_devices() filter uses wrong key — type filter always returns empty",
+        "severity": "high",
+        "category": "logic",
+        "file": "services/src/services/device_service.py",
+        "line": 61,
+        "description": "Filter uses d.get('device_type') but Firebase stores the field as 'type' (set in _build_device line 36). GET /devices?type=light always returns an empty list.",
+        "recommendation": "Change d.get('device_type') to d.get('type') on line 61."
+      },
+      {
+        "id": "H-8",
+        "title": "/events route shadowed by /{device_uuid} — endpoint unreachable",
+        "severity": "high",
+        "category": "logic",
+        "file": "services/src/routes/device_routes.py",
+        "line": 48,
+        "description": "GET /{device_uuid} is registered on line 20 before GET /events on line 48. FastAPI matches routes in registration order, so /devices/events is captured by /{device_uuid} with device_uuid='events', returning 404.",
+        "recommendation": "Register /events before /{device_uuid}, or move to a distinct prefix like /device-events."
+      }
+    ],
+    "medium": [
+      {
+        "id": "M-1",
+        "title": "Wildcard CORS — allow_origins=['*']",
+        "severity": "medium",
+        "category": "security",
+        "file": "services/src/main.py",
+        "line": 21,
+        "description": "All origins accepted with allow_methods=['*'] and allow_headers=['*']. Any web page from any domain can make cross-origin requests to the API.",
+        "recommendation": "Restrict to known origins (localhost:3000 for dev, production domain for prod)."
+      },
+      {
+        "id": "M-2",
+        "title": "DeviceSchema.device_uuid requires str but connect_device expects to handle null",
+        "severity": "medium",
+        "category": "logic",
+        "file": "services/src/schemas/device_schema.py",
+        "line": 7,
+        "description": "device_uuid is typed as str (required). device_service.connect_device() has logic to generate UUID when null, but Pydantic rejects null with 422 before the service layer runs. The null-UUID code path is unreachable.",
+        "recommendation": "Change to device_uuid: str | None = None in DeviceSchema."
+      },
+      {
+        "id": "M-3",
+        "title": "CommandAckPayload.status has no enum constraint — arbitrary strings accepted",
+        "severity": "medium",
+        "category": "validation",
+        "file": "services/src/schemas/device_schema.py",
+        "line": 25,
+        "description": "status: str = 'ok' accepts any string. Tested with 'HACKED' — it was accepted (200) and persisted to Firebase as device.status.last_command_status.",
+        "recommendation": "Use Literal['ok', 'error'] or an enum to constrain valid values."
+      },
+      {
+        "id": "M-4",
+        "title": "Self-reported device_uuid can overwrite any existing device",
+        "severity": "medium",
+        "category": "security",
+        "file": "services/src/services/device_service.py",
+        "line": "34-47",
+        "description": "Any caller of POST /device-gateway/connect can supply any device_uuid including one belonging to an existing device, and it will overwrite that device's data. No ownership verification.",
+        "recommendation": "Implement device ownership or authentication tokens per device."
+      },
+      {
+        "id": "M-5",
+        "title": "mark_stale_devices_offline runs O(N) Firebase scan on every heartbeat",
+        "severity": "medium",
+        "category": "performance",
+        "file": "services/src/services/device_service.py",
+        "line": 100,
+        "description": "Called synchronously inside heartbeat(). Performs _devices_ref().get() which reads ALL devices from Firebase. With N devices heartbeating every 5s, this creates N full-table scans per 5s interval.",
+        "recommendation": "Move to a background scheduled task (asyncio.create_task with periodic interval) instead of per-request."
+      },
+      {
+        "id": "M-6",
+        "title": "No refresh token endpoint — tokens non-renewable",
+        "severity": "medium",
+        "category": "logic",
+        "file": "services/src/routes/auth_routes.py",
+        "line": null,
+        "description": "RefreshTokenRequest schema is defined in auth_schema.py and create_refresh_token is implemented in security.py, but there is no POST /auth/refresh route. JWTs expire and users have no recovery path short of re-logging in.",
+        "recommendation": "Add POST /auth/refresh endpoint that validates refresh tokens and issues new access tokens."
+      },
+      {
+        "id": "M-7",
+        "title": "React key warning — undefined room values in rooms array",
+        "severity": "medium",
+        "category": "frontend",
+        "file": "apps/web/src/app/dashboard/page.tsx",
+        "line": 61,
+        "description": "devices.map(d => d.room) produces undefined for devices without room field. The Set contains undefined, creating buttons with key={undefined} which triggers React's duplicate key warning.",
+        "recommendation": "Filter out undefined/null values: devices.map(d => d.room).filter(Boolean)"
+      },
+      {
+        "id": "M-8",
+        "title": "Hardcoded ngrok URL in RVC simulator and Android client",
+        "severity": "medium",
+        "category": "configuration",
+        "files": [
+          "devices/RVC/simulation.py:23",
+          "apps/mobile/app/src/main/java/com/interactivehouse/mobile/data/api/RetrofitClient.kt:16"
+        ],
+        "description": "Both hardcode the same ngrok URL (knolly-svetlana-beribboned.ngrok-free.dev). Free ngrok URLs expire and rotate. Anyone else running the project will fail silently.",
+        "recommendation": "Read URL from environment variable or config file."
+      }
+    ],
+    "low": [
+      {
+        "id": "L-1",
+        "title": "No rate limiting on any endpoint",
+        "severity": "low",
+        "category": "security",
+        "file": "all routes",
+        "line": null,
+        "description": "No slowapi, fastapi-limiter, or middleware-based throttling found. Auth endpoints are exposed to brute-force attacks. Heartbeat and command polling endpoints are not rate-limited.",
+        "recommendation": "Add rate limiting middleware, especially on /auth/login and /auth/register."
+      },
+      {
+        "id": "L-2",
+        "title": "Dead code — unit_routes.py, state_store.py, events stub",
+        "severity": "low",
+        "category": "code-quality",
+        "files": [
+          "services/src/routes/unit_routes.py — not registered in main.py",
+          "services/src/firebase/state_store.py — empty file",
+          "services/src/controllers/state_controller.py — all methods return TODO stubs",
+          "services/src/routes/device_routes.py /events — unreachable + TODO stub"
+        ],
+        "description": "Multiple files and endpoints exist as stubs or dead code. unit_routes.py defines routes never registered. state_store.py is blank. State controller returns TODO for all methods.",
+        "recommendation": "Remove dead code or implement the stubs. Mark TODO endpoints as not-implemented with proper HTTP 501 status."
+      },
+      {
+        "id": "L-3",
+        "title": "Double Settings() instantiation",
+        "severity": "low",
+        "category": "code-quality",
+        "files": [
+          "services/src/config/settings.py:34",
+          "services/src/utils/security.py:10"
+        ],
+        "description": "security.py imports Settings class and creates a new instance instead of importing the existing singleton. Doubles .env file parsing on startup.",
+        "recommendation": "Change to: from services.src.config.settings import settings (import the instance, not the class)."
+      },
+      {
+        "id": "L-4",
+        "title": "print() logging user IDs to stdout",
+        "severity": "low",
+        "category": "security",
+        "file": "services/src/firebase/user_store.py",
+        "line": "10, 16, 22, 28",
+        "description": "print() calls log user_id and username on every user operation. In production, stdout may be captured by logging aggregators without access controls.",
+        "recommendation": "Replace print() with the project's logger (get_logger) at DEBUG level."
+      }
+    ],
+    "environment_issues": [
+      {
+        "id": "E-1",
+        "title": "Firebase database URL points to wrong region",
+        "severity": "high",
+        "category": "configuration",
+        "file": "services/.env.example",
+        "description": "The .env.example does not specify the correct Firebase Realtime Database URL. The database is hosted in europe-west1, requiring URL: https://interactive-house-d3e5c-default-rtdb.europe-west1.firebasedatabase.app. Using the default US URL causes 500 errors on all Firebase operations.",
+        "recommendation": "Update .env.example with the correct regional URL or add a comment noting the region requirement."
+      }
+    ]
+  }
+}

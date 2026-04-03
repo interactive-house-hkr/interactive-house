@@ -58,7 +58,7 @@ def list_devices(device_type: str | None = None):
     devices = device_store.list_devices()
 
     if device_type:
-        devices = [d for d in devices if d.get("device_type") == device_type]
+        devices = [d for d in devices if d.get("type") == device_type]
 
     for device in devices:
         device["is_online"] = is_device_online(device)
