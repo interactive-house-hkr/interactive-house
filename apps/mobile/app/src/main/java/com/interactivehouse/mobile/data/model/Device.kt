@@ -13,8 +13,11 @@ data class Device(
     val room: String?,
     val type: String,
     val capabilities: Map<String, CapabilitySpec>,
-    val state: Map<String, Any>
-)
+    val state: Map<String, Any>? = emptyMap()
+) {
+    val stateOrEmpty: Map<String, Any>
+        get() = state.orEmpty()
+}
 
 /**
  * Describes a device capability (e.g. "power": { "type": "boolean", "writable": true }).
