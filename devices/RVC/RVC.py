@@ -4,6 +4,13 @@
 import time
 import random
 
+from floorplan import GRID_SIZE, DOCK_POSITION, neighbors, shortest_path, room_name
+
+LOW_BATTERY_THRESHOLD = 20
+MOVE_INTERVAL = 0.45
+CHARGE_INTERVAL = 0.20
+CHARGE_STEP_AMOUNT = 2
+
 try:
     from RVC_Vis import RVCVisualizer
 except ModuleNotFoundError:
@@ -11,25 +18,32 @@ except ModuleNotFoundError:
 
 
 class RVC:
-    def __init__(self, device_id, name, grid_size=10):
+    def __init__(self, device_id, name, grid_size=GRID_SIZE):
         self.device_id = device_id
         self.name = name
-        self.position = (0, 0)
-        self.dock_position = (0, 0)
+        self.grid_size = grid_size
+
+        self.position = DOCK_POSITION
+        self.dock_position = DOCK_POSITION
         self.status = "idle"   # idle, cleaning, paused, returning_to_base
         self.battery_level = 100
+        self.low_battery_triggered = False
+        self.last_move_time = 0.0
+        self.last_charge_time = 0.0
+
+        self.cleaned_cells = {self.position}
         self.visualizer = RVCVisualizer(grid_size) if RVCVisualizer else None
-        self.grid_size = grid_size
 
     def get_status(self):
         return {
             "device_id": self.device_id,
             "name": self.name,
             "position": self.position,
-            "status": self.status,
-            "battery_level": self.battery_level,
             "position_x": self.position[0],
             "position_y": self.position[1],
+            "status": self.status,
+            "battery_level": self.battery_level,
+            "current_room": room_name(self.position),
         }
 
     def get_reported_state(self):
@@ -38,11 +52,22 @@ class RVC:
             "paused": self.status == "paused",
             "return_to_base": self.status == "returning_to_base",
             "docked": self.position == self.dock_position and self.status == "idle",
+            "battery_level": self.battery_level,
+            "low_battery": self.battery_level <= LOW_BATTERY_THRESHOLD,
+            "position_x": self.position[0],
+            "position_y": self.position[1],
+            "current_room": room_name(self.position),
+            "status_text": self.status,
         }
 
     def start(self):
+        if self.battery_level <= LOW_BATTERY_THRESHOLD and self.position != self.dock_position:
+            print(f"{self.name} cannot start cleaning. Battery is too low.")
+            return
+
         if self.status == "idle":
             self.status = "cleaning"
+            self.low_battery_triggered = False
             print(f"{self.name} has started cleaning.")
         elif self.status == "paused":
             self.resume()
@@ -73,29 +98,27 @@ class RVC:
     def dock(self):
         if self.position == self.dock_position:
             self.status = "idle"
+            self.low_battery_triggered = False
             print(f"{self.name} is already at the base.")
             return
 
         self.status = "returning_to_base"
         print(f"{self.name} is returning to base.")
 
-        x, y = self.position
-        while (x, y) != self.dock_position:
-            if x < self.dock_position[0]:
-                x += 1
-            elif x > self.dock_position[0]:
-                x -= 1
+        path = shortest_path(self.position, self.dock_position)
+        if not path:
+            print(f"{self.name} could not find a path back to the dock.")
+            self.status = "paused"
+            return
 
-            if y < self.dock_position[1]:
-                y += 1
-            elif y > self.dock_position[1]:
-                y -= 1
-
-            self.position = (x, y)
-            print(f"{self.name} is moving to position {self.position}.")
+        for step in path[1:]:
+            self.position = step
+            self.cleaned_cells.add(step)
             self.visualize()
+            time.sleep(0.12)
 
         self.status = "idle"
+        self.low_battery_triggered = False
         print(f"{self.name} has docked at the base.")
 
     def update_battery_level(self, level):
@@ -103,21 +126,92 @@ class RVC:
         print(f"{self.name}'s battery level is now {self.battery_level}%.")
 
     def move(self):
-        if self.status == "cleaning":
-            x, y = self.position
+        if self.status != "cleaning":
+            return
 
-            new_x = random.randint(max(0, x - 1), min(self.grid_size - 1, x + 1))
-            new_y = random.randint(max(0, y - 1), min(self.grid_size - 1, y + 1))
+        options = neighbors(self.position)
+        if not options:
+            return
 
-            self.position = (new_x, new_y)
-            self.battery_level = max(0, self.battery_level - 1)
+        unvisited = [p for p in options if p not in self.cleaned_cells]
+        next_position = random.choice(unvisited or options)
 
-            print(f"{self.name} has moved to position {self.position}.")
-        else:
-            print(f"{self.name} cannot move while {self.status}.")
+        self.position = next_position
+        self.cleaned_cells.add(next_position)
+        self.battery_level = max(0, self.battery_level - 1)
+
+        if self.battery_level <= LOW_BATTERY_THRESHOLD and self.position != self.dock_position:
+            self.low_battery_triggered = True
+            self.dock()
+
+    def charge_step(self):
+        if self.position == self.dock_position and self.status == "idle" and self.battery_level < 100:
+            self.battery_level = min(100, self.battery_level + CHARGE_STEP_AMOUNT)
+
+    def toggle_clean_pause(self):
+        if self.status == "idle":
+            self.start()
+        elif self.status == "cleaning":
+            self.pause()
+        elif self.status == "paused":
+            self.resume()
+
+    def reset_demo(self):
+        self.position = self.dock_position
+        self.status = "idle"
+        self.battery_level = 100
+        self.low_battery_triggered = False
+        self.cleaned_cells = {self.position}
+
+        if self.visualizer:
+            self.visualizer.reset_traces()
+
+    def tick(self, now):
+        if self.status == "cleaning" and now - self.last_move_time >= MOVE_INTERVAL:
+            self.move()
+            self.last_move_time = now
+
+        elif (
+            self.status == "idle"
+            and self.position == self.dock_position
+            and self.battery_level < 100
+            and now - self.last_charge_time >= CHARGE_INTERVAL
+        ):
+            self.charge_step()
+            self.last_charge_time = now
 
     def visualize(self):
         if self.visualizer:
-            self.visualizer.update_plot(self.position, self.name)
-            time.sleep(1)
+            return self.visualizer.update_plot(
+                self.position,
+                self.name,
+                self.status,
+                self.battery_level
+            )
+        return []
 
+
+if __name__ == "__main__":
+    rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=8)
+
+    if rvc.visualizer:
+        rvc.visualizer.initialize_plot(rvc.name)
+
+    running = True
+    while running and rvc.visualizer and rvc.visualizer.running:
+        actions = rvc.visualize()
+
+        for action in actions:
+            if action == "toggle_clean":
+                rvc.toggle_clean_pause()
+            elif action == "dock":
+                rvc.dock()
+            elif action == "stop":
+                rvc.stop()
+            elif action == "reset":
+                rvc.reset_demo()
+            elif action == "quit":
+                running = False
+
+        rvc.tick(time.time())
+        time.sleep(0.03)
