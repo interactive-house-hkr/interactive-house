@@ -21,7 +21,10 @@ import com.interactivehouse.mobile.ui.components.SignupForm
 @Composable
 fun AuthScreen(
     onLogin: (String, String) -> Unit,
-    onSignup: (String, String, String) -> Unit
+    onSignup: (String, String, String) -> Unit,
+    authMessage: String? = null,
+    isLoading: Boolean = false,
+    onClearMessage: () -> Unit
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
 
@@ -84,7 +87,7 @@ fun AuthScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = androidx.compose.ui.graphics.Color.White
+                    containerColor = Color.White
                 )
             ) {
                 Column(
@@ -98,15 +101,38 @@ fun AuthScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     if (isLoginMode) {
-                        LoginForm(onLogin = onLogin)
+                        LoginForm(onLogin = onLogin,
+                        isLoading = isLoading)
                     } else {
-                        SignupForm(onSignup = onSignup)
+                        SignupForm(onSignup = onSignup,
+                            isLoading = isLoading)
+                    }
+
+                    if (isLoading) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    if (!authMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = authMessage,
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     TextButton(
-                        onClick = { isLoginMode = !isLoginMode }
+                        onClick = {
+                            isLoginMode = !isLoginMode
+                            onClearMessage()
+                        }
                     ) {
                         Text(
                             if (isLoginMode) "No account? Sign up"
