@@ -9,7 +9,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.0.2.2:8080/" // server address
+    // Use local when you run the backend on your machine:
+    // private const val BASE_URL = "http://10.0.2.2:8000/api/v1/"
+
+    // Use ngrok when the backend has been started:
+    private const val BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/"
 
     lateinit var tokenManager: TokenManager
 
@@ -23,21 +27,20 @@ object RetrofitClient {
     }
 
     private val httpClient by lazy {
-        OkHttpClient.Builder() // network engine underneath retrofit
+        OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(AuthInterceptor(tokenManager))
             .build()
     }
 
-    val retrofit: Retrofit by lazy {
+    private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(httpClient)
-            .addConverterFactory(GsonConverterFactory.create()) // To convert JSON to kotlin objects automatically
+            .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
-    // connect retrofit to Device Api
     val deviceApi: DeviceApi by lazy {
         retrofit.create(DeviceApi::class.java)
     }

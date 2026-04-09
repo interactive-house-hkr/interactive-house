@@ -8,3 +8,4 @@ __pycache__/
 *.py[cod]
 *tmpclaude*
 .idea/
+tmp-logcat.txt
