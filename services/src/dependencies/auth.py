@@ -1,5 +1,6 @@
 from fastapi import Header, HTTPException
 from services.src.utils.security import decode_token, verify_access_token
+from jwt import InvalidTokenError
 
 
 # If the param is func, it will be mandatory, so we set default to None to make it optional until authentication is implemented
@@ -29,5 +30,9 @@ def current_user(authorization: str = Header(...))-> str:
         verify_access_token(payload) # Is the token valid?
 
         return payload["sub"]
-    except Exception:
+    except HTTPException:
+        raise
+    except InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid or missing token")
+    except (ValueError, KeyError):
         raise HTTPException(status_code=401, detail="Invalid or missing token")
