@@ -6,8 +6,12 @@
 #include <LiquidCrystal_I2C.h>
 #include <Servo.h>
 #include <ArduinoJson.h>
+//Added library SoftwareSerial
+#include <SoftwareSerial.h>
 
-LiquidCrystal_I2C lcd(0x3F, 16, 2);
+SoftwareSerial btSerial(10, 11);
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 Servo doorServo;
 
 unsigned long lastHeartbeat = 0;
@@ -15,9 +19,12 @@ unsigned long lastHeartbeat = 0;
 
 // ------------------------
 // ----- Device State -----
-//-------------------------
+// ------------------------
 bool lightPower = false;
+bool fanPower = false;
+int fanPin = 6;
 String doorState = "closed";
+
 
 
 // ------------------------
@@ -58,8 +65,19 @@ void sendConnect() {
 
   door["state"]["open"] = doorState;
 
-  serializeJson(doc, Serial);
-  Serial.println();
+  // Fan
+  JsonObject fan = devices["fan-1"].to<JsonObject>();
+  fan["device_uuid"] = "fan-1";
+  fan["type"] = "fan";
+
+  JsonObject fanCap = fan["capabilities"].to<JsonObject>();
+  fanCap["power"]["type"] = "boolean";
+  fanCap["power"]["writable"] = true;
+
+  fan["state"]["power"] = fanPower;
+
+  serializeJson(doc, btSerial);
+  btSerial.println();
 }
 
 
@@ -71,8 +89,8 @@ void sendHeartbeat() {
   doc["type"] = "HEARTBEAT";
   doc["device_uuid"] = "arduino-1";
 
-  serializeJson(doc, Serial);
-  Serial.println();
+  serializeJson(doc, btSerial);
+  btSerial.println();
 }
 
 
@@ -87,20 +105,25 @@ void sendAck(const char* device, JsonObject state) {
   doc["device_uuid"] = device;
   doc["status"] = "ok";
 
-  doc["state"] = state;
-
-  serializeJson(doc, Serial);
-  Serial.println();
+  doc["reported_state"] = state;
+  serializeJson(doc, btSerial);
+  btSerial.println();
 }
 
 void setup() {
   pinMode(13, OUTPUT);
   pinMode(5, OUTPUT);
+  pinMode(fanPin, OUTPUT);
+
+  // For some reason HIGH is on, and LOW is off
+  digitalWrite(fanPin, HIGH);
 
   doorServo.attach(9);
   doorServo.write(0);
 
   Serial.begin(9600);
+  //Added this for BT
+  btSerial.begin(9600);
 
   lcd.begin();
   lcd.backlight();
@@ -115,22 +138,22 @@ void setup() {
 // ----- Recieve Command -----
 // ---------------------------
 void loop() {
-  if (Serial.available()) {
-    String input = Serial.readStringUntil('\n');
+  if (btSerial.available()) {
+    String input = btSerial.readStringUntil('\n');
     input.trim();
 
     StaticJsonDocument<256> doc;
     DeserializationError err = deserializeJson(doc, input);
 
     if (err) {
-      Serial.println("{\"error\":\"invalid_json\"}");
+      btSerial.println("{\"error\":\"invalid_json\"}");
       return;
     }
-
+    
     const char* type = doc["type"];
     const char* device = doc["device_uuid"];
 
-    // Only process COMMAND
+    // Only process commands
     if (strcmp(type, "COMMAND") == 0) {
 
       JsonObject state = doc["state"];
@@ -173,6 +196,23 @@ void loop() {
           s["open"] = doorState;
           sendAck("door-1", s.as<JsonObject>());
         }
+      }
+
+      // Fan
+      if(strcmp(device, "fan-1") == 0 ){
+        if(state.containsKey("power")){
+          fanPower = state["power"];
+
+          digitalWrite(fanPin, fanPower ? LOW : HIGH);
+
+          lcd.clear();
+          lcd.print(fanPower ? "FAN ON" : "FAN OFF");
+
+          StaticJsonDocument<64> s;
+          s["power"] = fanPower;
+          sendAck("fan-1", s.as<JsonObject>());
+        }
+
       }
     }
   }
