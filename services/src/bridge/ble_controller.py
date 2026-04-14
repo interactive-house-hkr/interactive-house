@@ -26,7 +26,7 @@ async def send_ble_json(client: BleakClient, payload: dict) -> bool:
 
     try:
         message = json.dumps(payload) + "\n"
-        await client.write_gatt_char(HM10_UUID, message.encode(), response=True)
+        await client.write_gatt_char(HM10_UUID, message.encode(), response=False)
         await asyncio.sleep(CMD_DELAY)
         logger.debug(f"Sent BLE JSON: {message.strip()}")
         return True
@@ -79,9 +79,10 @@ async def run_ble() -> bool:
         return False
 
     for device in devices:
-        logger.info(f"Found BLE device: name={device.name}, address={device.address}")
+        logger.info(
+            f"Found BLE device: name={device.name}, address={device.address}")
 
-    target = next((device for device in devices if device.name), None)
+    target = next((d for d in devices if d.name and "HMSoft" in d.name), None)
 
     if not target:
         logger.warning("No usable BLE device found")
