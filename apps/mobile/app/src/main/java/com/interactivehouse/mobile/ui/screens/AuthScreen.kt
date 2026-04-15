@@ -101,11 +101,15 @@ fun AuthScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     if (isLoginMode) {
-                        LoginForm(onLogin = onLogin,
-                        isLoading = isLoading)
+                        LoginForm(
+                            onLogin = onLogin,
+                            isLoading = isLoading
+                        )
                     } else {
-                        SignupForm(onSignup = onSignup,
-                            isLoading = isLoading)
+                        SignupForm(
+                            onSignup = onSignup,
+                            isLoading = isLoading
+                        )
                     }
 
                     if (isLoading) {

@@ -1,5 +1,7 @@
 package com.interactivehouse.mobile.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class SignupRequest(
     val username: String,
     val email: String,
@@ -8,8 +10,15 @@ data class SignupRequest(
 
 data class SignupResponse(
     val status: String,
+
+    @SerializedName("user_id")
     val userId: String?,
-    val token: String?
+
+    @SerializedName("access_token")
+    val token: String?,
+
+    @SerializedName("refresh_token")
+    val refreshToken: String?
 )
 
 data class LoginRequest(
@@ -19,6 +28,13 @@ data class LoginRequest(
 
 data class LoginResponse(
     val status: String,
+
+    @SerializedName("access_token")
     val token: String?,
-    val userId: String?
+
+    @SerializedName("user_id")
+    val userId: String?,
+
+    @SerializedName("refresh_token")
+    val refreshToken: String?
 )
