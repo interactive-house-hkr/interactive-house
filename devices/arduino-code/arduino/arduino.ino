@@ -57,7 +57,7 @@ void sendConnect()
     serializeJson(d1, Serial);
     Serial.println();
   } // d1 is freed here
-  delay(150);
+  delay(200);
 
   // ------------------------
   // -------- Light ---------
@@ -77,7 +77,7 @@ void sendConnect()
     serializeJson(d2, Serial);
     Serial.println();
   } // d2 freed here
-  delay(150);
+  delay(200);
 
   // ------------------------
   // --------- Door ---------
@@ -97,7 +97,7 @@ void sendConnect()
     serializeJson(d3, Serial);
     Serial.println();
   } // d3 freed here
-  delay(150);
+  delay(200);
 
   // ------------------------
   // ---------- Fan ---------
@@ -117,7 +117,7 @@ void sendConnect()
     serializeJson(d4, Serial);
     Serial.println();
   } // d4 freed here
-  delay(150);
+  delay(200);
 
   // ------------------------
   // ---- Motion Sensor -----
@@ -139,7 +139,7 @@ void sendConnect()
     serializeJson(d5, Serial);
     Serial.println();
   }
-  delay(150);
+  delay(200);
 
   // ------------------------
   // -------- Buzzer --------
@@ -161,30 +161,31 @@ void sendConnect()
     serializeJson(d6, Serial);
     Serial.println();
   }
-  delay(150);
+  delay(200);
 
   // ------------------------
   // ------ Light Sensor ----
   // ------------------------
   // READ-ONLY: reports ambient light level 0-1023
 
-  {
-    StaticJsonDocument<320> d7;
-    d7["type"] = "CONNECT";
-    JsonObject dev7 = d7["devices"]["light-sensor-1"].to<JsonObject>();
-    dev7["device_uuid"] = "light-sensor-1";
-    dev7["type"] = "light_sensor";
-    dev7["transport"]["mode"] = "via_controller";
-    dev7["transport"]["controller_uuid"] = "arduino-1";
-    dev7["transport"]["port"] = A2;
-    dev7["capabilities"]["level"]["type"] = "integer";
-    dev7["capabilities"]["level"]["min"] = 0;
-    dev7["capabilities"]["level"]["max"] = 1023;
-    dev7["capabilities"]["level"]["writable"] = false;
-    dev7["state"]["level"] = lightLevel;
-    serializeJson(d7, Serial);
-    Serial.println();
-  }
+//  {
+//    StaticJsonDocument<440> d7;
+//    d7["type"] = "CONNECT";
+//    JsonObject dev7 = d7["devices"]["light-sensor-1"].to<JsonObject>();
+//    dev7["device_uuid"] = "light-sensor-1";
+//    dev7["type"] = "light_sensor";
+//    dev7["transport"]["mode"] = "via_controller";
+//    dev7["transport"]["controller_uuid"] = "arduino-1";
+//    dev7["transport"]["port"] = A2;
+//    dev7["capabilities"]["level"]["type"] = "integer";
+//    dev7["capabilities"]["level"]["min"] = 0;
+//    dev7["capabilities"]["level"]["max"] = 1023;
+//    dev7["capabilities"]["level"]["writable"] = false;
+//    dev7["state"]["level"] = lightLevel;
+// serializeJson(d7, Serial);
+//   Serial.println();
+//  }
+
 }
 
 // --------------------------
@@ -220,15 +221,15 @@ void sendAck(const char *device, JsonObject state)
 // ----------------------------------
 // ----- Send Sensor State Update -----
 // ----------------------------------
-void sendStateUpdate(const char *device_uuid, JsonObject state)
-{
-  StaticJsonDocument<128> doc;
-  doc["type"] = "STATE_UPDATE";
-  doc["device_uuid"] = device_uuid;
-  doc["state"] = state;
-  serializeJson(doc, Serial);
-  Serial.println();
-}
+//void sendStateUpdate(const char *device_uuid, JsonObject state)
+//{
+//  StaticJsonDocument<128> doc;
+//  doc["type"] = "STATE_UPDATE";
+//  doc["device_uuid"] = device_uuid;
+//  doc["state"] = state;
+//  serializeJson(doc, Serial);
+//  Serial.println();
+//}
 
 void setup()
 {
@@ -248,7 +249,7 @@ void setup()
 
   Serial.begin(9600);
 
-  lcd.begin();
+  lcd.init();
   lcd.backlight();
   lcd.print("Smart House");
 
@@ -269,31 +270,31 @@ void loop()
   // ----------------------------------------
 
   // Motion sensor
-  bool newMotion = digitalRead(pirPin);
-  if (newMotion != prevMotion)
-  {
-    motionState = newMotion;
-    prevMotion = newMotion;
+ // bool newMotion = digitalRead(pirPin);
+ // if (newMotion != prevMotion)
+ // {
+ //   motionState = newMotion;
+ //   prevMotion = newMotion;
 
-    lcd.clear();
-    lcd.print(motionState ? "Motion ON" : "Motion OFF");
+ //   lcd.clear();
+//    lcd.print(motionState ? "Motion ON" : "Motion OFF");
 
-    StaticJsonDocument<64> s;
-    s["motion"] = motionState;
-    sendStateUpdate("pir-1", s.as<JsonObject>());
-  }
+//    StaticJsonDocument<64> s;
+//    s["motion"] = motionState;
+//    sendStateUpdate("pir-1", s.as<JsonObject>());
+//  }
 
   // Light sensor — only send update if change is significant (>10 units)
-  int newLight = analogRead(lightSensorPin);
-  if (abs(newLight - prevLightLevel) > 10)
-  {
-    lightLevel = newLight;
-    prevLightLevel = newLight;
+//  int newLight = analogRead(lightSensorPin);
+//  if (abs(newLight - prevLightLevel) > 10)
+//  {
+//    lightLevel = newLight;
+//    prevLightLevel = newLight;
 
-    StaticJsonDocument<64> s;
-    s["level"] = lightLevel;
-    sendStateUpdate("light-sensor-1", s.as<JsonObject>());
-  }
+//    StaticJsonDocument<64> s;
+//    s["level"] = lightLevel;
+//    sendStateUpdate("light-sensor-1", s.as<JsonObject>());
+//  }
 
   // ----------------------------------------
   // Handle incoming BLE commands
