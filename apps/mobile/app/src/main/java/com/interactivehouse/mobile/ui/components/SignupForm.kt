@@ -11,7 +11,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SignupForm(
-    onSignup: (String, String, String) -> Unit
+    onSignup: (String, String, String) -> Unit,
+    isLoading: Boolean = false
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -36,6 +37,7 @@ fun SignupForm(
         label = { Text("Username") },
         placeholder = { Text("Enter username") },
         singleLine = true,
+        enabled = !isLoading,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = textFieldColors
@@ -52,6 +54,7 @@ fun SignupForm(
         label = { Text("Email") },
         placeholder = { Text("Enter email") },
         singleLine = true,
+        enabled = !isLoading,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = textFieldColors
@@ -69,6 +72,7 @@ fun SignupForm(
         placeholder = { Text("Enter password") },
         visualTransformation = PasswordVisualTransformation(),
         singleLine = true,
+        enabled = !isLoading,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = textFieldColors
@@ -86,6 +90,7 @@ fun SignupForm(
         placeholder = { Text("Confirm password") },
         visualTransformation = PasswordVisualTransformation(),
         singleLine = true,
+        enabled = !isLoading,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = textFieldColors
@@ -129,11 +134,12 @@ fun SignupForm(
 
             onSignup(trimmedUsername, trimmedEmail, password)
         },
+        enabled = !isLoading,
         modifier = Modifier
             .fillMaxWidth()
             .height(54.dp),
         shape = RoundedCornerShape(18.dp)
     ) {
-        Text("Sign Up")
+        Text(if (isLoading) "Signing Up..." else "Sign Up")
     }
 }
