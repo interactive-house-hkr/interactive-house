@@ -35,6 +35,11 @@ int lightSensorPin = A2;
 bool prevMotion = false;
 int prevLightLevel = 0;
 
+// Cooldown timers to prevent BLE flooding
+unsigned long lastMotionSent = 0;
+unsigned long lastLightSent = 0;
+const unsigned long SENSOR_COOLDOWN_MS = 2000;
+
 // ------------------------
 // ----- Send Connect -----
 // ------------------------
@@ -168,23 +173,24 @@ void sendConnect()
   // ------------------------
   // READ-ONLY: reports ambient light level 0-1023
 
-//  {
-//    StaticJsonDocument<440> d7;
-//    d7["type"] = "CONNECT";
-//    JsonObject dev7 = d7["devices"]["light-sensor-1"].to<JsonObject>();
-//    dev7["device_uuid"] = "light-sensor-1";
-//    dev7["type"] = "light_sensor";
-//    dev7["transport"]["mode"] = "via_controller";
-//    dev7["transport"]["controller_uuid"] = "arduino-1";
-//    dev7["transport"]["port"] = A2;
-//    dev7["capabilities"]["level"]["type"] = "integer";
-//    dev7["capabilities"]["level"]["min"] = 0;
-//    dev7["capabilities"]["level"]["max"] = 1023;
-//    dev7["capabilities"]["level"]["writable"] = false;
-//    dev7["state"]["level"] = lightLevel;
-// serializeJson(d7, Serial);
-//   Serial.println();
-//  }
+  {
+    StaticJsonDocument<440> d7;
+    d7["type"] = "CONNECT";
+    JsonObject dev7 = d7["devices"]["light-sensor-1"].to<JsonObject>();
+    dev7["device_uuid"] = "light-sensor-1";
+    dev7["type"] = "light_sensor";
+    dev7["transport"]["mode"] = "via_controller";
+    dev7["transport"]["controller_uuid"] = "arduino-1";
+    dev7["transport"]["port"] = A2;
+    dev7["capabilities"]["level"]["type"] = "integer";
+    dev7["capabilities"]["level"]["min"] = 0;
+    dev7["capabilities"]["level"]["max"] = 1023;
+    dev7["capabilities"]["level"]["writable"] = false;
+    dev7["state"]["level"] = lightLevel;
+    serializeJson(d7, Serial);
+    Serial.println();
+  }
+  delay(200);
 
 }
 
@@ -221,15 +227,15 @@ void sendAck(const char *device, JsonObject state)
 // ----------------------------------
 // ----- Send Sensor State Update -----
 // ----------------------------------
-//void sendStateUpdate(const char *device_uuid, JsonObject state)
-//{
-//  StaticJsonDocument<128> doc;
-//  doc["type"] = "STATE_UPDATE";
-//  doc["device_uuid"] = device_uuid;
-//  doc["state"] = state;
-//  serializeJson(doc, Serial);
-//  Serial.println();
-//}
+void sendStateUpdate(const char *device_uuid, JsonObject state)
+{
+  StaticJsonDocument<128> doc;
+  doc["type"] = "STATE_UPDATE";
+  doc["device_uuid"] = device_uuid;
+  doc["state"] = state;
+  serializeJson(doc, Serial);
+  Serial.println();
+}
 
 void setup()
 {
@@ -269,32 +275,36 @@ void loop()
   // Read sensors and send updates on change
   // ----------------------------------------
 
+  unsigned long now_ms = millis();
+
   // Motion sensor
- // bool newMotion = digitalRead(pirPin);
- // if (newMotion != prevMotion)
- // {
- //   motionState = newMotion;
- //   prevMotion = newMotion;
+  bool newMotion = digitalRead(pirPin);
+  if (newMotion != prevMotion && (now_ms - lastMotionSent) >= SENSOR_COOLDOWN_MS)
+  {
+    motionState = newMotion;
+    prevMotion = newMotion;
+    lastMotionSent = now_ms;
 
- //   lcd.clear();
-//    lcd.print(motionState ? "Motion ON" : "Motion OFF");
+    lcd.clear();
+    lcd.print(motionState ? "Motion ON" : "Motion OFF");
 
-//    StaticJsonDocument<64> s;
-//    s["motion"] = motionState;
-//    sendStateUpdate("pir-1", s.as<JsonObject>());
-//  }
+    StaticJsonDocument<64> s;
+    s["motion"] = motionState;
+    sendStateUpdate("pir-1", s.as<JsonObject>());
+  }
 
-  // Light sensor — only send update if change is significant (>10 units)
-//  int newLight = analogRead(lightSensorPin);
-//  if (abs(newLight - prevLightLevel) > 10)
-//  {
-//    lightLevel = newLight;
-//    prevLightLevel = newLight;
+  // Light sensor — only send if change is significant (>10 units) and cooldown passed
+  int newLight = analogRead(lightSensorPin);
+  if (abs(newLight - prevLightLevel) > 10 && (now_ms - lastLightSent) >= SENSOR_COOLDOWN_MS)
+  {
+    lightLevel = newLight;
+    prevLightLevel = newLight;
+    lastLightSent = now_ms;
 
-//    StaticJsonDocument<64> s;
-//    s["level"] = lightLevel;
-//    sendStateUpdate("light-sensor-1", s.as<JsonObject>());
-//  }
+    StaticJsonDocument<64> s;
+    s["level"] = lightLevel;
+    sendStateUpdate("light-sensor-1", s.as<JsonObject>());
+  }
 
   // ----------------------------------------
   // Handle incoming BLE commands
