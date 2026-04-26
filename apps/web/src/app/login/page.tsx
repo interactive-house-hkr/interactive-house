@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Home, Eye, EyeOff } from "lucide-react";
+import { auth } from "@/lib/auth";
 
 const BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1";
 
@@ -24,11 +25,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      router.replace("/dashboard");
-    }
-  }, [router]);
+  if (auth.isLoggedIn()) {
+    router.replace("/dashboard");
+  }
+}, []);
 
   const submitLabel = useMemo(() => {
     if (loading) return "Please wait...";
@@ -102,31 +102,45 @@ export default function LoginPage() {
           };
 
       const response = await fetch(`${BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  body: JSON.stringify(body),
+});
 
-      const data = await response.json().catch(() => ({}));
+// IMPORTANT: read raw first (prevents silent parsing issues)
+const text = await response.text();
+console.log("RAW RESPONSE:", text);
 
-      if (!response.ok || data.status === "error") {
-        throw new Error(
-          data?.detail?.[0]?.msg ||
-            data?.message ||
-            data?.detail ||
-            "Authentication failed"
-        );
-      }
+// parse manually so we SEE failures clearly
+const data = JSON.parse(text);
+console.log("PARSED DATA:", data);
 
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("refreshToken", data.refresh_token);
-      localStorage.setItem("userId", data.user_id);
-      localStorage.setItem("username", form.username.trim());
+if (!response.ok || data.status === "error") {
+  throw new Error(
+    data?.detail?.[0]?.msg ||
+      data?.message ||
+      data?.detail ||
+      "Authentication failed"
+  );
+}
 
-      router.push("/dashboard");
+// store session
+auth.setSession({
+  access_token: data.access_token,
+  refresh_token: data.refresh_token,
+  user_id: data.user_id,
+  username: form.username.trim(),
+});
+
+// verify storage immediately
+console.log("TOKEN STORED:", localStorage.getItem("token"));
+console.log("REFRESH STORED:", localStorage.getItem("refreshToken"));
+
+router.push("/dashboard");
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {

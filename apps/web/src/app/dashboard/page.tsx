@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { DeviceCard, Device } from "@/components/DeviceCard";
 import { Home } from "lucide-react";
 import { getDevices, sendDeviceCommand, ServerDevice } from "@/lib/api";
+import { auth } from "@/lib/auth";
+import { useRouter } from "next/dist/client/components/navigation";
+
+
 
 const fallbackDevices: Device[] = [
   { id: "1", name: "Ceiling Light", type: "light", room: "Living Room", isOn: true, brightness: 80 },
@@ -26,16 +30,28 @@ function mapDevice(d: ServerDevice): Device {
   };
 }
 
+
+
 export default function DashboardPage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [activeRoom, setActiveRoom] = useState("All");
   const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
 
+  const router = useRouter();
+
+useEffect(() => {
+  const token = auth.getToken();
+
+  if (!token) {
+    router.replace("/login");
+  }
+}, [router]);
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
-  };
+  auth.clear();
+  window.location.href = "/login";
+};
 
   async function loadDevices() {
     try {
