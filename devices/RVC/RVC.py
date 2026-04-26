@@ -3,8 +3,9 @@
 
 import time
 import random
+from collections import deque
 
-from floorplan import GRID_SIZE, DOCK_POSITION, neighbors, shortest_path, room_name
+from floorplan import GRID_SIZE, DOCK_POSITION, WALKABLE_CELLS, neighbors, shortest_path, room_name
 
 LOW_BATTERY_THRESHOLD = 20
 MOVE_INTERVAL = 0.45
@@ -95,6 +96,7 @@ class RVC:
         else:
             print(f"{self.name} is not paused.")
 
+
     def dock(self):
         if self.position == self.dock_position:
             self.status = "idle"
@@ -125,20 +127,50 @@ class RVC:
         self.battery_level = max(0, min(100, level))
         print(f"{self.name}'s battery level is now {self.battery_level}%.")
 
+    def nearest_unvisited(self):
+        unvisited = WALKABLE_CELLS - self.cleaned_cells
+        if not unvisited:
+            return None
+
+        queue = deque([self.position])
+        seen = {self.position}
+
+        while queue:
+            current = queue.popleft()
+            if current in unvisited:
+                return current
+            for neighbor in neighbors(current):
+                if neighbor not in seen:
+                    seen.add(neighbor)
+                    queue.append(neighbor)
+
+        return None
+    
     def move(self):
         if self.status != "cleaning":
             return
 
-        options = neighbors(self.position)
-        if not options:
+        target = self.nearest_unvisited()
+
+        if target is None:
+            # All reachable cells are clean, return to dock
+            print(f"{self.name} has finished cleaning all reachable cells.")
+            self.dock()
             return
 
-        unvisited = [p for p in options if p not in self.cleaned_cells]
-        next_position = random.choice(unvisited or options)
+        path = shortest_path(self.position, target)
+
+        # Take one step along the path toward the target
+        if len(path) >= 2:
+            next_position = path[1]
+        else:
+            next_position = self.position
 
         self.position = next_position
         self.cleaned_cells.add(next_position)
         self.battery_level = max(0, self.battery_level - 1)
+
+        time.sleep(0.2)
 
         if self.battery_level <= LOW_BATTERY_THRESHOLD and self.position != self.dock_position:
             self.low_battery_triggered = True
@@ -214,4 +246,4 @@ if __name__ == "__main__":
                 running = False
 
         rvc.tick(time.time())
-        time.sleep(0.03)
+        time.sleep(0.3)
