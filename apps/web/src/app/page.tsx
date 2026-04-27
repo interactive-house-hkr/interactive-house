@@ -6,22 +6,29 @@ import { Home } from "lucide-react";
 import { getDevices, sendDeviceCommand, ServerDevice } from "@/lib/api";
 
 const fallbackDevices: Device[] = [
-  { id: "1", name: "Ceiling Light", type: "light", room: "Living Room", isOn: true, brightness: 80 },
-  { id: "2", name: "Desk Lamp", type: "light", room: "Office", isOn: false, brightness: 50 },
-  { id: "3", name: "Floor Lamp", type: "light", room: "Bedroom", isOn: true, brightness: 30 },
-  { id: "4", name: "Ceiling Fan", type: "fan", room: "Living Room", isOn: true, speed: 2 },
-  { id: "5", name: "Fan", type: "fan", room: "Bedroom", isOn: false, speed: 1 },
-  { id: "6", name: "Vacuum Cleaner", type: "fan", room: "Living Room", isOn: false, speed: 1 },
+  { id: "1", name: "Ceiling Fan", type: "fan", room: "Home", isOn: true, speed: 2 },
+  { id: "2", name: "Robot Vacuum", type: "fan", room: "Home", isOn: false, speed: 1 },
 ];
 
 function mapDevice(d: ServerDevice): Device {
+  let displayName = d.device_uuid;
+
+  if (d.type === "robot_vacuum") {
+    displayName = "Robot Vacuum";
+  } else if (d.type === "fan") {
+    displayName = "Smart Fan";
+  }
+
   return {
     id: d.device_uuid,
-    name: d.name,
-    type: d.type,
-    room: d.room,
-    isOn: d.state?.power ?? false,
-    brightness: d.state?.brightness,
+    name: displayName,
+    type: "fan",
+    room: "Home",
+    isOn:
+      d.type === "robot_vacuum"
+        ? (d.state?.cleaning ?? false)
+        : (d.state?.power ?? false),
+    brightness: undefined,
     speed: d.state?.speed,
   };
 }
@@ -35,12 +42,16 @@ export default function DashboardPage() {
   async function loadDevices() {
     try {
       const data = await getDevices();
-      const mapped = data.map(mapDevice);
+
+      const realDevices = data.filter(
+        (device) => device.type === "robot_vacuum" || device.type === "fan"
+      );
+
+      const mapped = realDevices.map(mapDevice);
       setDevices(mapped);
       setUsingFallback(false);
     } catch (err) {
       console.error("Server not available, using fallback", err);
-
       setDevices((prev) => (prev.length === 0 ? fallbackDevices : prev));
       setUsingFallback(true);
     } finally {
@@ -77,50 +88,32 @@ export default function DashboardPage() {
       prev.map((d) => (d.id === id ? { ...d, isOn: newPower } : d))
     );
 
-    if (!usingFallback) {
-      try {
-        await sendDeviceCommand(id, { power: newPower });
-        await loadDevices();
-      } catch (err) {
-        console.error(err);
+    try {
+      if (currentDevice.name === "Robot Vacuum") {
+        await sendDeviceCommand(id, {
+          cleaning: newPower,
+          paused: false,
+          return_to_base: false,
+        });
+      } else {
+        await sendDeviceCommand(id, {
+          power: newPower,
+        });
       }
+
+      await loadDevices();
+    } catch (err) {
+      console.error("Toggle failed:", err);
+      await loadDevices();
     }
   };
 
-  const setBrightness = async (id: string, value: number) => {
-    const currentDevice = devices.find((d) => d.id === id);
-    if (!currentDevice) return;
-
-    setDevices((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, brightness: value } : d))
-    );
-
-    if (!usingFallback) {
-      try {
-        await sendDeviceCommand(id, { brightness: value });
-        await loadDevices();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
+  const setBrightness = async (_id: string, _value: number) => {};
 
   const setSpeed = async (id: string, value: number) => {
-    const currentDevice = devices.find((d) => d.id === id);
-    if (!currentDevice) return;
-
     setDevices((prev) =>
       prev.map((d) => (d.id === id ? { ...d, speed: value } : d))
     );
-
-    if (!usingFallback) {
-      try {
-        await sendDeviceCommand(id, { speed: value });
-        await loadDevices();
-      } catch (err) {
-        console.error(err);
-      }
-    }
   };
 
   return (
@@ -178,7 +171,7 @@ export default function DashboardPage() {
 
             {filtered.length === 0 && (
               <p className="text-center text-gray-500 py-12">
-                No devices in this room.
+                No devices found.
               </p>
             )}
           </>
