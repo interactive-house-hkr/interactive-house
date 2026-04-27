@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DeviceCard, Device } from "@/components/DeviceCard";
 import { Home } from "lucide-react";
 import { getDevices, sendDeviceCommand, ServerDevice } from "@/lib/api";
@@ -34,10 +35,17 @@ function mapDevice(d: ServerDevice): Device {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+
   const [devices, setDevices] = useState<Device[]>([]);
   const [activeRoom, setActiveRoom] = useState("All");
   const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
+
+  function logout() {
+    localStorage.removeItem("token");
+    router.push("/login");
+  }
 
   async function loadDevices() {
     try {
@@ -119,14 +127,23 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100">
-            <Home className="h-5 w-5 text-teal-600" />
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100">
+              <Home className="h-5 w-5 text-teal-600" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">My Home</h1>
+              <p className="text-xs text-gray-500">{activeCount} devices active</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">My Home</h1>
-            <p className="text-xs text-gray-500">{activeCount} devices active</p>
-          </div>
+
+          <button
+            onClick={logout}
+            className="rounded-full bg-gray-200 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-300"
+          >
+            Logout
+          </button>
         </div>
       </header>
 

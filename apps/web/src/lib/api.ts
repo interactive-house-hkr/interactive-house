@@ -21,7 +21,15 @@ export interface ServerDevice {
 }
 
 export async function getDevices(): Promise<ServerDevice[]> {
-  const res = await fetch("/api/devices");
+  const res = await fetch(
+    "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/devices",
+    {
+      headers: {
+        Accept: "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
+    }
+  );
 
   if (!res.ok) {
     throw new Error("Failed to fetch devices");

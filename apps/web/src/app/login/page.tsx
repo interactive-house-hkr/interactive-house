@@ -25,10 +25,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-  if (auth.isLoggedIn()) {
-    router.replace("/dashboard");
-  }
-}, []);
+    if (auth.isLoggedIn()) {
+      router.replace("/");
+    }
+  }, []);
 
   const submitLabel = useMemo(() => {
     if (loading) return "Please wait...";
@@ -84,7 +84,7 @@ export default function LoginPage() {
         await new Promise((resolve) => setTimeout(resolve, 500));
         localStorage.setItem("token", "mock-token-12345");
         localStorage.setItem("username", form.username);
-        router.push("/dashboard");
+        router.push("/");
         return;
       }
 
@@ -102,45 +102,41 @@ export default function LoginPage() {
           };
 
       const response = await fetch(`${BASE_URL}${endpoint}`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
-  body: JSON.stringify(body),
-});
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify(body),
+      });
 
-// IMPORTANT: read raw first (prevents silent parsing issues)
-const text = await response.text();
-console.log("RAW RESPONSE:", text);
+      const text = await response.text();
+      console.log("RAW RESPONSE:", text);
 
-// parse manually so we SEE failures clearly
-const data = JSON.parse(text);
-console.log("PARSED DATA:", data);
+      const data = JSON.parse(text);
+      console.log("PARSED DATA:", data);
 
-if (!response.ok || data.status === "error") {
-  throw new Error(
-    data?.detail?.[0]?.msg ||
-      data?.message ||
-      data?.detail ||
-      "Authentication failed"
-  );
-}
+      if (!response.ok || data.status === "error") {
+        throw new Error(
+          data?.detail?.[0]?.msg ||
+            data?.message ||
+            data?.detail ||
+            "Authentication failed"
+        );
+      }
 
-// store session
-auth.setSession({
-  access_token: data.access_token,
-  refresh_token: data.refresh_token,
-  user_id: data.user_id,
-  username: form.username.trim(),
-});
+      auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user_id: data.user_id,
+        username: form.username.trim(),
+      });
 
-// verify storage immediately
-console.log("TOKEN STORED:", localStorage.getItem("token"));
-console.log("REFRESH STORED:", localStorage.getItem("refreshToken"));
+      console.log("TOKEN STORED:", localStorage.getItem("token"));
+      console.log("REFRESH STORED:", localStorage.getItem("refreshToken"));
 
-router.push("/dashboard");
-
+      router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
