@@ -1,3 +1,5 @@
+import time
+
 from RVC import RVC
 from RVC_Rest import RVCRestAdapter
 import signal
@@ -32,9 +34,11 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, handle_shutdown)
 
     rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)
+    """
     rest_adapter = RVCRestAdapter(rvc, base_url="https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/device-gateway")
     rest_adapter.connect()
 
+    
     heartbeat_thread = threading.Thread(target=heartbeat_loop, args=(rest_adapter,))
     heartbeat_thread.start()
 
@@ -59,12 +63,17 @@ if __name__ == "__main__":
     rvc.start()
     rvc.visualize()
 
-    for _ in range(20):
+    steps = 0
+
+    for _ in range(100):
         rvc.move()
         rvc.visualize()
-
-    rvc.pause()
-    rvc.resume()
-    rvc.stop()
+        print(steps)
+        steps += 1
+        if steps == 20:
+            rvc.pause()
+            time.sleep(5)
+            rvc.resume()
+        
     rvc.dock()
-    """
+    
