@@ -277,6 +277,20 @@ async def post_command(device_uuid: str, payload: CommandPayload) -> Dict[str, A
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
+    requested_keys = set(payload.state.keys())
+    supported_keys = set(device.get("capabilities", {}).keys())
+    unsupported_keys = requested_keys - supported_keys
+
+    if unsupported_keys:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "unsupported_capability",
+                "message": "device does not support one or more requested state fields",
+                "unsupported_keys": sorted(unsupported_keys),
+            },
+        )
+
     command_payload = {
         "type": "COMMAND",
         "device_uuid": device_uuid,

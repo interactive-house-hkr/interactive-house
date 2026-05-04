@@ -1,7 +1,11 @@
 import asyncio
 
+import pytest
+from fastapi import HTTPException
+
 from services.src.schemas.device_schema import CommandPayload
 from services.src.services import device_service
+
 
 def test_post_command_for_rest_device_queues_command(monkeypatch):
     # This test tests the flow of:
@@ -17,9 +21,15 @@ def test_post_command_for_rest_device_queues_command(monkeypatch):
             "device_uuid": device_uuid,
             "transport": {
                 "mode": "rest"
-            }
+            },
+            "capabilities": {
+                "power": {
+                    "type": "boolean",
+                    "writable": True,
+                },
+            },
         }
-    
+
     def fake_enqueue_command(device_uuid, payload):
         # Fake the queue write by saving the values locally,
         # so the test can verify what would have been queued.
@@ -48,3 +58,41 @@ def test_post_command_for_rest_device_queues_command(monkeypatch):
         "device_uuid": "DEVICE_01",
         "state": {"power": "on"},
     }
+
+
+def test_post_command_rejects_unsupported_state_keys(monkeypatch):
+    queued = {}
+
+    def fake_get_device(device_uuid):
+        return {
+            "device_uuid": device_uuid,
+            "transport": {
+                "mode": "rest"
+            },
+            "capabilities": {
+                "power": {
+                    "type": "boolean",
+                    "writable": True,
+                },
+            },
+        }
+
+    def fake_enqueue_command(device_uuid, payload):
+        queued["device_uuid"] = device_uuid
+        queued["payload"] = payload
+
+    monkeypatch.setattr(device_service.device_store, "get_device", fake_get_device)
+    monkeypatch.setattr(device_service.device_store, "enqueue_command", fake_enqueue_command)
+
+    payload = CommandPayload(state={"banana": "yes"})
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(device_service.post_command("DEVICE_01", payload))
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == {
+        "error": "unsupported_capability",
+        "message": "device does not support one or more requested state fields",
+        "unsupported_keys": ["banana"],
+    }
+    assert queued == {}
