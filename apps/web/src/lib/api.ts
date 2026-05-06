@@ -1,6 +1,8 @@
 export interface ServerDevice {
   device_uuid: string;
+  name?: string;
   type: "robot_vacuum" | "light" | "fan" | string;
+  room?: string;
   last_seen?: string;
   is_online?: boolean;
   state: {
@@ -16,22 +18,31 @@ export interface ServerDevice {
     connected?: boolean;
     last_command_status?: string;
   };
-  capabilities?: any;
-  transport?: any;
+  capabilities?: unknown;
+  transport?: unknown;
+}
+
+const BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1";
+
+function getAuthHeaders() {
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  return {
+    Accept: "application/json",
+    "ngrok-skip-browser-warning": "true",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
 export async function getDevices(): Promise<ServerDevice[]> {
-  const res = await fetch(
-    "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/devices",
-    {
-      headers: {
-        Accept: "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
-    }
-  );
+  const res = await fetch(`${BASE_URL}/devices`, {
+    headers: getAuthHeaders(),
+  });
 
   if (!res.ok) {
+    const errorText = await res.text();
+    console.error("GET DEVICES ERROR:", res.status, errorText);
     throw new Error("Failed to fetch devices");
   }
 
@@ -49,23 +60,19 @@ export async function sendDeviceCommand(
     speed?: number;
   }
 ) {
-  const res = await fetch(
-    `https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/devices/${id}/commands`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
-      body: JSON.stringify({ state }),
-    }
-  );
+  const res = await fetch(`${BASE_URL}/devices/${id}/commands`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ state }),
+  });
 
   const data = await res.json();
-  console.log("COMMAND RESPONSE:", data);
 
   if (!res.ok) {
+    console.error("COMMAND ERROR:", res.status, data);
     throw new Error("Failed to send command");
   }
 
