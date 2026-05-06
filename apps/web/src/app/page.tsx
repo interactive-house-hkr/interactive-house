@@ -51,11 +51,10 @@ export default function DashboardPage() {
     try {
       const data = await getDevices();
 
-      const realDevices = data.filter(
-        (device) => device.type === "robot_vacuum" || device.type === "fan"
-      );
+console.log("DEVICES FROM SERVER:", data);
 
-      const mapped = realDevices.map(mapDevice);
+const mapped = data.map(mapDevice);
+
       setDevices(mapped);
       setUsingFallback(false);
     } catch (err) {
