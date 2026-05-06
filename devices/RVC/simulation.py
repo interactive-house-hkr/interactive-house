@@ -1,9 +1,11 @@
 import time
 
-from RVC import RVC
-from RVC_Rest import RVCRestAdapter
+#from RVC import RVC
+#from RVC_Rest import RVCRestAdapter
 import signal
 import threading
+from devices.Fan.fan_controller import FanController
+from devices.Fan.rest_gateway import FanRestAdapter
 
 stop_event = threading.Event()
 
@@ -33,7 +35,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
 
-    rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)
+
+    #rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)#
     """
     rest_adapter = RVCRestAdapter(rvc, base_url="https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/device-gateway")
     rest_adapter.connect()
@@ -57,23 +60,64 @@ if __name__ == "__main__":
 
     # manual testing of RVC functionality
     """
-    if rvc.visualizer:
-        rvc.visualizer.initialize_plot(rvc.name)
+    # if rvc.visualizer:
+    #     rvc.visualizer.initialize_plot(rvc.name)
 
-    rvc.start()
-    rvc.visualize()
+    # rvc.start()
+    # rvc.visualize()
 
-    steps = 0
+    # steps = 0
 
-    for _ in range(100):
-        rvc.move()
-        rvc.visualize()
-        print(steps)
-        steps += 1
-        if steps == 20:
-            rvc.pause()
-            time.sleep(5)
-            rvc.resume()
+    # for _ in range(100):
+    #     rvc.move()
+    #     rvc.visualize()
+    #     print(steps)
+    #     steps += 1
+    #     if steps == 20:
+    #         rvc.pause()
+    #         time.sleep(5)
+    #         rvc.resume()
         
-    rvc.dock()
+    # rvc.dock()
+
+    fan = FanController()
+
+    fan_adapter = FanRestAdapter(
+        fan,
+        device_id="FAN001",
+        base_url="http://localhost:8000/api/v1/device-gateway"
+    )
+
+    fan_adapter.connect()
+
+    heartbeat_thread_fan = threading.Thread(
+        target=heartbeat_loop,
+        args=(fan_adapter,)
+    )
+
+    command_thread_fan = threading.Thread(
+        target=command_loop,
+        args=(fan_adapter,)
+    )
+
+    heartbeat_thread_fan.start()
+    command_thread_fan.start()
+
+    try:
+        while (
+            heartbeat_thread_fan.is_alive()
+            or command_thread_fan.is_alive()
+        ):
+            heartbeat_thread_fan.join(timeout=0.5)
+            command_thread_fan.join(timeout=0.5)
+
+    except KeyboardInterrupt:
+        handle_shutdown(None, None)
+
+    finally:
+        stop_event.set()
+        fan.close()
+
+        
+
     
