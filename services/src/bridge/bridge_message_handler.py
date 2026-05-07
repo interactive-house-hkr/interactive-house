@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime
 
@@ -20,33 +21,60 @@ async def handle_connect_message(transport_type: str, transport, message: str):
         parsed = json.loads(message)
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON from device: {e}")
-        logger.debug(f"Raw message: {message}")
+        # Removed debug log to avoid cluttered logs
+        # logger.debug(f"Raw message: {message}")
         return
 
-    if "devices" not in parsed:
-        logger.warning("CONNECT message missing 'devices'")
+    devices = parsed.get("devices")
+    if isinstance(devices, dict) and devices:
+        try:
+            payload = ConnectDeviceBody(devices=devices)
+            result = device_controller.connect_device(payload)
+            logger.info(f"Connect result: {result}")
+        except Exception as e:
+            logger.error(f"Failed to connect device(s) from CONNECT message: {e}")
         return
+
+    device_uuid = parsed.get("device_uuid")
+    device_type = parsed.get("device_type")
+
+    if not device_uuid or not device_type:
+        logger.warning(
+            f"CONNECT message missing device_uuid or device_type: {parsed}")
+        return
+
+    # Build a state from extracted state fields in connect message
+    state = {}
+    if "power" in parsed:
+        state["power"] = parsed["power"]
+    if "open" in parsed:
+        state["open"] = parsed["open"]
+
+    logger.info(
+        f"Device connected: uuid={device_uuid}, type={device_type}, state={state}")
 
     try:
-        payload = ConnectDeviceBody(**parsed)
-    except Exception as e:
-        logger.error(f"Payload validation failed: {e}")
-        return
-
-    try:
+        payload = ConnectDeviceBody(devices={
+            device_uuid: {
+                "device_uuid": device_uuid,
+                "type": device_type,
+                "state": state
+            }
+        })
         result = device_controller.connect_device(payload)
         logger.info(f"Connect result: {result}")
     except Exception as e:
-        logger.error(f"Failed to connect devices: {e}")
+        logger.error(f"Failed to connect device {device_uuid}: {e}")
         return
 
-    response_payload = {
+"""response_payload = {
         "type": "CONNECT_ACK",
+        "device_uuid": device_uuid,
         "message": result.get("message"),
-        "devices": result.get("devices", {}),
-        "generated_uuids": result.get("generated_uuids", {}),
         "server_time": now(),
     }
+
+    await asyncio.sleep(1)
 
     if transport_type == "ble":
         from services.src.bridge.ble_controller import send_ble_json
@@ -56,9 +84,10 @@ async def handle_connect_message(transport_type: str, transport, message: str):
         sent = await send_usb_json(transport, response_payload)
 
     if sent:
-        logger.info("Sent CONNECT_ACK back to device")
+        logger.info(f"Sent CONNECT_ACK back {device_uuid}")
     else:
-        logger.error("Failed to send CONNECT_ACK back to device")
+        logger.error(
+            f"Failed to send CONNECT_ACK back {device_uuid}") """
 
 
 async def handle_heartbeat_message(message: str):
@@ -76,7 +105,8 @@ async def handle_heartbeat_message(message: str):
 
     try:
         result = device_controller.heartbeat(device_uuid)
-        logger.info(f"Heartbeat updated for device_uuid={device_uuid}: {result}")
+        logger.info(
+            f"Heartbeat updated for device_uuid={device_uuid}: {result}")
     except Exception as e:
         logger.error(f"Failed to process heartbeat for {device_uuid}: {e}")
 
@@ -100,7 +130,8 @@ async def handle_command_ack(message: str):
 
     try:
         # Update device state with reported_state from ACK
-        device_controller.handle_command_ack(device_uuid, status, reported_state)
+        device_controller.handle_command_ack(
+            device_uuid, status, reported_state)
     except Exception as e:
         logger.error(f"Failed to update state from command ACK: {e}")
 
@@ -109,7 +140,8 @@ async def handle_incoming_message(transport_type: str, transport, message: str):
     try:
         parsed = json.loads(message)
     except json.JSONDecodeError:
-        logger.info(f"Received non-JSON {transport_type.upper()} message: {message}")
+        logger.info(
+            f"Received non-JSON {transport_type.upper()} message: {message}")
         return
 
     message_type = parsed.get("type")
@@ -126,4 +158,5 @@ async def handle_incoming_message(transport_type: str, transport, message: str):
         await handle_command_ack(message)
         return
 
-    logger.info(f"Unhandled {transport_type.upper()} message type: {message_type}")
+    logger.info(
+        f"Unhandled {transport_type.upper()} message type: {message_type}")

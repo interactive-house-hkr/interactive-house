@@ -1,16 +1,18 @@
 package com.interactivehouse.mobile.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import android.util.Patterns
 
 @Composable
 fun SignupForm(
-    onSignup: (String, String, String) -> Unit
+    onSignup: (String, String, String) -> Unit,
+    isLoading: Boolean = false
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -19,6 +21,13 @@ fun SignupForm(
 
     var errorMessage by remember { mutableStateOf("") }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = Color(0xFFF3F4F6),
+        unfocusedContainerColor = Color(0xFFF3F4F6),
+        focusedBorderColor = Color(0xFFE5E7EB),
+        unfocusedBorderColor = Color(0xFFE5E7EB)
+    )
+
     OutlinedTextField(
         value = username,
         onValueChange = {
@@ -26,7 +35,12 @@ fun SignupForm(
             errorMessage = ""
         },
         label = { Text("Username") },
-        modifier = Modifier.fillMaxWidth()
+        placeholder = { Text("Enter username") },
+        singleLine = true,
+        enabled = !isLoading,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth(),
+        colors = textFieldColors
     )
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -38,7 +52,12 @@ fun SignupForm(
             errorMessage = ""
         },
         label = { Text("Email") },
-        modifier = Modifier.fillMaxWidth()
+        placeholder = { Text("Enter email") },
+        singleLine = true,
+        enabled = !isLoading,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth(),
+        colors = textFieldColors
     )
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -50,8 +69,13 @@ fun SignupForm(
             errorMessage = ""
         },
         label = { Text("Password") },
+        placeholder = { Text("Enter password") },
         visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth()
+        singleLine = true,
+        enabled = !isLoading,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth(),
+        colors = textFieldColors
     )
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -63,8 +87,13 @@ fun SignupForm(
             errorMessage = ""
         },
         label = { Text("Confirm Password") },
+        placeholder = { Text("Confirm password") },
         visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth()
+        singleLine = true,
+        enabled = !isLoading,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth(),
+        colors = textFieldColors
     )
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -80,7 +109,6 @@ fun SignupForm(
 
     Button(
         onClick = {
-
             val trimmedUsername = username.trim()
             val trimmedEmail = email.trim()
 
@@ -106,8 +134,12 @@ fun SignupForm(
 
             onSignup(trimmedUsername, trimmedEmail, password)
         },
-        modifier = Modifier.fillMaxWidth()
+        enabled = !isLoading,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp),
+        shape = RoundedCornerShape(18.dp)
     ) {
-        Text("Sign Up")
+        Text(if (isLoading) "Signing Up..." else "Sign Up")
     }
 }

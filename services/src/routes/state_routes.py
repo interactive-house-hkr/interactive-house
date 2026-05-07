@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
-from services.src.services.auth_service import optional_user
+from services.src.dependencies.auth import current_user
+from services.src.dependencies.auth import optional_user
 from services.src.controllers import state_controller as controller
 
 router = APIRouter(
@@ -12,9 +13,9 @@ router = APIRouter(
 # -------------------------
 
 @router.get("/{device_uuid}/state")
-def get_state(device_uuid: str, user=Depends(optional_user)):
+def get_state(device_uuid: str, user=Depends(current_user)):
     return controller.get_state(device_uuid=device_uuid)
 
 @router.patch("/{device_uuid}/state")
-def patch_state(device_uuid: str, updates: dict, user=Depends(optional_user)):
+def patch_state(device_uuid: str, updates: dict, user=Depends(current_user)):
     return controller.patch_state(device_uuid=device_uuid, updates=updates)

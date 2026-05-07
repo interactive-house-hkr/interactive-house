@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     firebase_service_account: str
     firebase_database_url: str
 
+    # Auth configuration
+    SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int
+    ALGORITHM: str = "HS256"
+
     model_config = SettingsConfigDict(
         env_file=str(ENV_PATH),
         env_file_encoding="utf-8",

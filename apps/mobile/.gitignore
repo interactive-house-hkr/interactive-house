@@ -14,3 +14,9 @@
 .cxx
 local.properties
 .idea/
+# Kotlin / Android logs
+.kotlinc/
+.kotlin/
+*.log
+hs_err_pid*.log
+replay_pid*.log

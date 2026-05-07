@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from services.src.services.auth_service import optional_user
+from services.src.dependencies.auth import optional_user
 from services.src.controllers import unit_controller as controller
 
 router = APIRouter(

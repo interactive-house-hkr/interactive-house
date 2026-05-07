@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Home, Eye, EyeOff } from "lucide-react";
-import { auth } from "@/lib/auth";
 
 const BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1";
 
@@ -25,10 +24,11 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (auth.isLoggedIn()) {
-      router.replace("/");
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.replace("/dashboard");
     }
-  }, []);
+  }, [router]);
 
   const submitLabel = useMemo(() => {
     if (loading) return "Please wait...";
@@ -84,7 +84,7 @@ export default function LoginPage() {
         await new Promise((resolve) => setTimeout(resolve, 500));
         localStorage.setItem("token", "mock-token-12345");
         localStorage.setItem("username", form.username);
-        router.push("/");
+        router.push("/dashboard");
         return;
       }
 
@@ -106,16 +106,11 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify(body),
       });
 
-      const text = await response.text();
-      console.log("RAW RESPONSE:", text);
-
-      const data = JSON.parse(text);
-      console.log("PARSED DATA:", data);
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok || data.status === "error") {
         throw new Error(
@@ -126,17 +121,12 @@ export default function LoginPage() {
         );
       }
 
-      auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        user_id: data.user_id,
-        username: form.username.trim(),
-      });
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("refreshToken", data.refresh_token);
+      localStorage.setItem("userId", data.user_id);
+      localStorage.setItem("username", form.username.trim());
 
-      console.log("TOKEN STORED:", localStorage.getItem("token"));
-      console.log("REFRESH STORED:", localStorage.getItem("refreshToken"));
-
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {

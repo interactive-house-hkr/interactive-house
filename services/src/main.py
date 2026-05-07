@@ -1,7 +1,9 @@
 import asyncio
 from fastapi import FastAPI
 from services.src.middleware.logging_middleware import logging_middleware
+from services.src.routes.auth_routes import router as auth_router
 from services.src.routes.device_routes import router as device_router
+from services.src.routes.device_gateway_routes import router as device_gateway_router
 from services.src.routes.state_routes import router as state_router
 from services.src.utils.logger import get_logger
 from services.src.bridge.bridge import run_bridge
@@ -50,7 +52,9 @@ async def shutdown_event():
             logger.info("Bridge service stopped")
 
 # Include routers
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(device_router, prefix="/api/v1")
+app.include_router(device_gateway_router, prefix="/api/v1")
 app.include_router(state_router, prefix="/api/v1")
 
 @app.get("/")
