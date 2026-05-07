@@ -1,4 +1,13 @@
-const BASE_URL = "http://localhost:8000/api/v1";
+const BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1";
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("token");
+
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export interface ServerDevice {
   device_uuid: string;
@@ -13,7 +22,9 @@ export interface ServerDevice {
 }
 
 export async function getDevices(): Promise<ServerDevice[]> {
-  const res = await fetch(`${BASE_URL}/devices`);
+const res = await fetch(`${BASE_URL}/devices`, {
+  headers: getAuthHeaders(),
+});
 
   if (!res.ok) {
     throw new Error("Failed to fetch devices");
@@ -28,9 +39,7 @@ export async function sendDeviceCommand(
 ) {
   const res = await fetch(`${BASE_URL}/devices/${id}/commands`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ state }),
   });
 
