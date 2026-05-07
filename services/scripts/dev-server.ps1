@@ -1,6 +1,7 @@
 param(
     [int]$Port = 8000,
-    [switch]$DisableBridge
+    [switch]$DisableBridge,
+    [switch]$EnableBridge
 )
 
 # This script starts the FastAPI server for local development.
@@ -33,6 +34,14 @@ if (-not $env:REFRESH_TOKEN_EXPIRE_DAYS) {
 }
 
 # Optional flags for easier local testing.
+if ($EnableBridge -and $DisableBridge) {
+    throw "Use either -EnableBridge or -DisableBridge, not both."
+}
+
+if ($EnableBridge) {
+    $env:ENABLE_BRIDGE = "true"
+}
+
 if ($DisableBridge) {
     $env:ENABLE_BRIDGE = "false"
 }
