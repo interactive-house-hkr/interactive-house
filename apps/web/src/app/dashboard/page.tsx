@@ -21,12 +21,28 @@ const fallbackDevices: Device[] = [
 function mapDevice(d: ServerDevice): Device {
   return {
     id: d.device_uuid,
-    name: d.name,
+
+    // fallback names
+    name:
+      d.name ||
+      d.device_uuid.replace(/-/g, " ").toUpperCase(),
+
+    // fallback room
+    room: d.room || "General",
+
     type: d.type,
-    room: d.room,
-    isOn: d.state?.power ?? false,
+
+    isOn:
+      d.state?.power ??
+      d.state?.cleaning ??
+      d.state?.open ??
+      false,
+
     brightness: d.state?.brightness,
+
     speed: d.state?.speed,
+
+    capabilities: d.capabilities,
   };
 }
 
@@ -127,22 +143,40 @@ useEffect(() => {
   };
 
   const setSpeed = async (id: string, value: number) => {
-    const currentDevice = devices.find((d) => d.id === id);
-    if (!currentDevice) return;
+  const currentDevice = devices.find((d) => d.id === id);
 
-    setDevices((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, speed: value } : d))
-    );
+  if (!currentDevice) return;
 
-    if (!usingFallback) {
-      try {
-        await sendDeviceCommand(id, { speed: value });
-        await loadDevices();
-      } catch (err) {
-        console.error(err);
+  const currentSpeed = currentDevice.speed || 1;
+
+  // optimistic UI update
+  setDevices((prev) =>
+    prev.map((d) =>
+      d.id === id
+        ? { ...d, speed: value }
+        : d
+    )
+  );
+
+  if (!usingFallback) {
+    try {
+      // determine direction
+      if (value > currentSpeed) {
+        await sendDeviceCommand(id, {
+          speed_up: true,
+        });
+      } else if (value < currentSpeed) {
+        await sendDeviceCommand(id, {
+          speed_down: true,
+        });
       }
+
+      await loadDevices();
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -178,9 +212,9 @@ useEffect(() => {
         ) : (
           <>
             <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-              {rooms.map((room) => (
-                <button
-                  key={room}
+              {rooms.map((room, index) => (
+  <button
+    key={`${room}-${index}`}
                   onClick={() => setActiveRoom(room)}
                   className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     activeRoom === room
@@ -194,15 +228,15 @@ useEffect(() => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((device) => (
-                <DeviceCard
-                  key={device.id}
-                  device={device}
-                  onToggle={toggle}
-                  onBrightnessChange={setBrightness}
-                  onSpeedChange={setSpeed}
-                />
-              ))}
+              {filtered.map((device, index) => (
+                  <DeviceCard
+                    key={`${device.id}-${index}`}
+                    device={device}
+                    onToggle={toggle}
+                    onBrightnessChange={setBrightness}
+                    onSpeedChange={setSpeed}
+                  />
+                ))}
             </div>
 
             {filtered.length === 0 && (
