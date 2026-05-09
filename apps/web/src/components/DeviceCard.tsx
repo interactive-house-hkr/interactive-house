@@ -62,22 +62,29 @@ const canDecreaseSpeed =
 const hasSpeedControls =
   canIncreaseSpeed || canDecreaseSpeed;
 
-const canToggleSwing =
-  device.capabilities?.swing_toggle?.writable;
 
-const canCycleMode =
-  device.capabilities?.mode_next?.writable;
-
-    const hasWritableCapabilities =
-  !!device.capabilities &&
+const hasWritableCapabilities = !!device.capabilities &&
   Object.values(device.capabilities).some(
     (cap) => cap.writable
   );
 
-    const isActive =
-  device.uiState.active;
 
-  const Icon = hasBrightness
+const actionCapabilities = Object.entries(
+  device.capabilities || {}
+).filter(
+  ([key, value]) =>
+    value.writable &&
+    value.type === "boolean" &&
+    ![
+      "power",
+      "speed_up",
+      "speed_down",
+      "brightness",
+    ].includes(key)
+);
+const isActive = device.uiState.active;
+
+const Icon = hasBrightness
     ? Lightbulb
     : hasSpeedControls
     ? Fan
@@ -214,30 +221,22 @@ className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 
     </div>
   </div>
 )}
-<div className="flex flex-wrap gap-2 mt-4">
-  {canToggleSwing && (
-    <button
-    onClick={() =>
-    onAction(device.id, "swing_toggle")
-  }
 
-      className="rounded-lg px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
-    >
-      Swing
-    </button>
-  )}
-
-  {canCycleMode && (
-    <button
-    onClick={() =>
-    onAction(device.id, "mode_next")
-  }
-      className="rounded-lg px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
-    >
-      Mode
-    </button>
-  )}
-</div>
+{actionCapabilities.length > 0 && (
+  <div className="flex flex-wrap gap-2 mt-4">
+    {actionCapabilities.map(([key]) => (
+      <button
+        key={key}
+        onClick={() =>
+          onAction(device.id, key)
+        }
+        className="rounded-lg px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+      >
+        {key.replace(/_/g, " ")}
+      </button>
+    ))}
+  </div>
+)}
         </motion.div>
       )}
 
