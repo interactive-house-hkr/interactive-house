@@ -1,7 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Lightbulb, Fan, Power } from "lucide-react";
+import {
+  Lightbulb,
+  Fan,
+  Power,
+  DoorOpen,
+  Bot,
+  Radar,
+  Cpu,
+} from "lucide-react";
+
 
 export interface Device {
   id: string;
@@ -41,11 +50,19 @@ export function DeviceCard({
     device.capabilities?.speed_up?.writable ||
     device.capabilities?.speed_down?.writable;
 
-  const Icon = hasBrightness
-    ? Lightbulb
-    : hasSpeedControls
-    ? Fan
-    : Power;
+  const iconMap = {
+  light: Lightbulb,
+  fan: Fan,
+  door: DoorOpen,
+  robot_vacuum: Bot,
+  motion_sensor: Radar,
+  controller: Cpu,
+};
+
+const Icon =
+  iconMap[
+    device.type as keyof typeof iconMap
+  ] || Power;
 
   return (
     <motion.div
