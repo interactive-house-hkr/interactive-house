@@ -93,11 +93,19 @@ const actionCapabilities = Object.entries(
 );
 const isActive = device.uiState.active;
 
-const Icon = hasBrightness
-    ? Lightbulb
-    : hasSpeedControls
-    ? Fan
-    : Power;
+const iconMap = {
+  light: Lightbulb,
+  fan: Fan,
+  door: DoorOpen,
+  robot_vacuum: Bot,
+  motion_sensor: Radar,
+  controller: Cpu,
+};
+
+const Icon =
+  iconMap[
+    device.type as keyof typeof iconMap
+  ] || Power;
 
   return (
     <motion.div
