@@ -11,6 +11,14 @@ export interface Device {
   isOn: boolean;
   brightness?: number;
   speed?: number;
+  statusLabel: string;
+
+  uiState: {
+    reachable: boolean;
+    active: boolean;
+    status: string;
+  };
+
 
   capabilities?: Record<
     string,
@@ -26,6 +34,13 @@ interface DeviceCardProps {
   onToggle: (id: string) => void;
   onBrightnessChange: (id: string, value: number) => void;
   onSpeedChange: (id: string, value: number) => void;
+  
+
+  onAction: (
+  id: string,
+  action: string
+) => void;
+
 }
 
 export function DeviceCard({
@@ -33,15 +48,43 @@ export function DeviceCard({
   onToggle,
   onBrightnessChange,
   onSpeedChange,
+  onAction
 }: DeviceCardProps) {
   const hasBrightness =
     device.capabilities?.brightness?.writable;
 
-  const hasSpeedControls =
-    device.capabilities?.speed_up?.writable ||
-    device.capabilities?.speed_down?.writable;
+  const canIncreaseSpeed =
+  device.capabilities?.speed_up?.writable;
 
-  const Icon = hasBrightness
+const canDecreaseSpeed =
+  device.capabilities?.speed_down?.writable;
+
+const hasSpeedControls =
+  canIncreaseSpeed || canDecreaseSpeed;
+
+
+const hasWritableCapabilities = !!device.capabilities &&
+  Object.values(device.capabilities).some(
+    (cap) => cap.writable
+  );
+
+
+const actionCapabilities = Object.entries(
+  device.capabilities || {}
+).filter(
+  ([key, value]) =>
+    value.writable &&
+    value.type === "boolean" &&
+    ![
+      "power",
+      "speed_up",
+      "speed_down",
+      "brightness",
+    ].includes(key)
+);
+const isActive = device.uiState.active;
+
+const Icon = hasBrightness
     ? Lightbulb
     : hasSpeedControls
     ? Fan
@@ -53,7 +96,7 @@ export function DeviceCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-2xl border p-5 transition-shadow ${
-        device.isOn
+        isActive
           ? "bg-white border-teal-200 shadow-lg shadow-teal-500/10"
           : "bg-gray-50 border-gray-200"
       }`}
@@ -63,17 +106,17 @@ export function DeviceCard({
         <div className="flex items-center gap-3">
           <div
             className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-              device.isOn
+              isActive
                 ? "bg-teal-100 text-teal-600"
                 : "bg-gray-200 text-gray-400"
             }`}
           >
             <Icon
               className={`h-5 w-5 ${
-                hasSpeedControls && device.isOn ? "animate-spin" : ""
+                hasSpeedControls && isActive ? "animate-spin" : ""
               }`}
               style={
-                hasSpeedControls && device.isOn
+                hasSpeedControls && isActive
                   ? {
                       animationDuration: `${4 - (device.speed || 1)}s`,
                     }
@@ -91,20 +134,22 @@ export function DeviceCard({
         </div>
 
         {/* Power button */}
+        {hasWritableCapabilities && (
         <button
           onClick={() => onToggle(device.id)}
           className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-            device.isOn
+            isActive
               ? "bg-teal-500 text-white hover:bg-teal-600"
               : "bg-gray-200 text-gray-400 hover:bg-gray-300"
           }`}
         >
           <Power className="h-4 w-4" />
         </button>
+        )}
       </div>
 
       {/* Controls */}
-      {device.isOn && (
+      {isActive && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
@@ -136,40 +181,60 @@ export function DeviceCard({
           )}
 
           {hasSpeedControls && (
-  <div>
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-xs text-gray-500">Fan Speed</p>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-500">Fan Speed</p>
 
-      <span className="text-xs font-medium text-gray-700">
-        {device.speed ?? 4}
-      </span>
+                  <span className="text-xs font-medium text-gray-700">
+                    {device.speed ?? 4}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  {canDecreaseSpeed && (
+                    <button
+                      onClick={() =>
+                        onSpeedChange(
+                          device.id,
+                          Math.max(1, (device.speed ?? 4) - 1)
+                        )
+                      }
+className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+        >
+          -
+        </button>
+      )}
+
+      {canIncreaseSpeed && (
+        <button
+          onClick={() =>
+            onSpeedChange(
+              device.id,
+              Math.min(8, (device.speed ?? 4) + 1)
+            )
+          }
+          className="flex-1 rounded-lg py-2 text-sm font-medium bg-teal-500 text-white hover:bg-teal-600"
+        >
+          +
+        </button>
+      )}
     </div>
+  </div>
+)}
 
-    <div className="flex gap-2">
+{actionCapabilities.length > 0 && (
+  <div className="flex flex-wrap gap-2 mt-4">
+    {actionCapabilities.map(([key]) => (
       <button
+        key={key}
         onClick={() =>
-          onSpeedChange(
-            device.id,
-            Math.max(1, (device.speed ?? 4) - 1)
-          )
+          onAction(device.id, key)
         }
-        className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+        className="rounded-lg px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
       >
-        -
+        {key.replace(/_/g, " ")}
       </button>
-
-      <button
-        onClick={() =>
-          onSpeedChange(
-            device.id,
-            Math.min(8, (device.speed ?? 4) + 1)
-          )
-        }
-        className="flex-1 rounded-lg py-2 text-sm font-medium bg-teal-500 text-white hover:bg-teal-600"
-      >
-        +
-      </button>
-    </div>
+    ))}
   </div>
 )}
         </motion.div>
@@ -179,12 +244,12 @@ export function DeviceCard({
       <div className="flex items-center gap-1.5 mt-3">
         <div
           className={`h-1.5 w-1.5 rounded-full ${
-            device.isOn ? "bg-teal-500" : "bg-gray-400"
+            isActive ? "bg-teal-500" : "bg-gray-400"
           }`}
         />
 
         <span className="text-[11px] text-gray-500">
-          {device.isOn ? "Active" : "Off"}
+          {device.uiState.status}
         </span>
       </div>
     </motion.div>
