@@ -19,6 +19,13 @@ export interface ServerDevice {
 
   type: string;
 
+  is_online?: boolean;
+
+  status?: {
+    connected?: boolean;
+    last_command_status?: string;
+  };
+
   capabilities?: Record<
     string,
     {
