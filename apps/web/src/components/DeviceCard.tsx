@@ -6,11 +6,19 @@ import { Lightbulb, Fan, Power } from "lucide-react";
 export interface Device {
   id: string;
   name: string;
-  type: "light" | "fan";
+  type: string;
   room: string;
   isOn: boolean;
   brightness?: number;
   speed?: number;
+
+  capabilities?: Record<
+    string,
+    {
+      type: string;
+      writable: boolean;
+    }
+  >;
 }
 
 interface DeviceCardProps {
@@ -26,8 +34,18 @@ export function DeviceCard({
   onBrightnessChange,
   onSpeedChange,
 }: DeviceCardProps) {
-  const isLight = device.type === "light";
-  const Icon = isLight ? Lightbulb : Fan;
+  const hasBrightness =
+    device.capabilities?.brightness?.writable;
+
+  const hasSpeedControls =
+    device.capabilities?.speed_up?.writable ||
+    device.capabilities?.speed_down?.writable;
+
+  const Icon = hasBrightness
+    ? Lightbulb
+    : hasSpeedControls
+    ? Fan
+    : Power;
 
   return (
     <motion.div
@@ -51,16 +69,23 @@ export function DeviceCard({
             }`}
           >
             <Icon
-              className={`h-5 w-5 ${!isLight && device.isOn ? "animate-spin" : ""}`}
+              className={`h-5 w-5 ${
+                hasSpeedControls && device.isOn ? "animate-spin" : ""
+              }`}
               style={
-                !isLight && device.isOn
-                  ? { animationDuration: `${4 - (device.speed || 1)}s` }
+                hasSpeedControls && device.isOn
+                  ? {
+                      animationDuration: `${4 - (device.speed || 1)}s`,
+                    }
                   : {}
               }
             />
           </div>
+
           <div>
-            <p className="font-semibold text-gray-900 text-sm">{device.name}</p>
+            <p className="font-semibold text-gray-900 text-sm">
+              {device.name}
+            </p>
             <p className="text-xs text-gray-500">{device.room}</p>
           </div>
         </div>
@@ -86,47 +111,67 @@ export function DeviceCard({
           exit={{ opacity: 0, height: 0 }}
           className="pt-3 border-t border-gray-100"
         >
-          {/* Light brightness */}
-          {isLight && device.brightness !== undefined && (
+          {/* Brightness */}
+          {hasBrightness && device.brightness !== undefined && (
             <div>
               <div className="flex justify-between text-xs text-gray-500 mb-2">
                 <span>Brightness</span>
                 <span>{device.brightness}%</span>
               </div>
+
               <input
                 type="range"
                 min={0}
                 max={100}
                 value={device.brightness}
                 onChange={(e) =>
-                  onBrightnessChange(device.id, Number(e.target.value))
+                  onBrightnessChange(
+                    device.id,
+                    Number(e.target.value)
+                  )
                 }
                 className="w-full h-2 rounded-full appearance-none bg-gray-200 accent-teal-500"
               />
             </div>
           )}
 
-          {/* Fan speed */}
-          {!isLight && (
-            <div>
-              <p className="text-xs text-gray-500 mb-2">Speed</p>
-              <div className="flex gap-2">
-                {[1, 2, 3].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => onSpeedChange(device.id, s)}
-                    className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors ${
-                      device.speed === s
-                        ? "bg-teal-500 text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {s === 1 ? "Low" : s === 2 ? "Medium" : "High"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {hasSpeedControls && (
+  <div>
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-xs text-gray-500">Fan Speed</p>
+
+      <span className="text-xs font-medium text-gray-700">
+        {device.speed ?? 4}
+      </span>
+    </div>
+
+    <div className="flex gap-2">
+      <button
+        onClick={() =>
+          onSpeedChange(
+            device.id,
+            Math.max(1, (device.speed ?? 4) - 1)
+          )
+        }
+        className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+      >
+        -
+      </button>
+
+      <button
+        onClick={() =>
+          onSpeedChange(
+            device.id,
+            Math.min(8, (device.speed ?? 4) + 1)
+          )
+        }
+        className="flex-1 rounded-lg py-2 text-sm font-medium bg-teal-500 text-white hover:bg-teal-600"
+      >
+        +
+      </button>
+    </div>
+  </div>
+)}
         </motion.div>
       )}
 
@@ -137,6 +182,7 @@ export function DeviceCard({
             device.isOn ? "bg-teal-500" : "bg-gray-400"
           }`}
         />
+
         <span className="text-[11px] text-gray-500">
           {device.isOn ? "Active" : "Off"}
         </span>
