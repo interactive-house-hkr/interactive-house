@@ -11,6 +11,14 @@ export interface Device {
   isOn: boolean;
   brightness?: number;
   speed?: number;
+  statusLabel: string;
+
+  uiState: {
+    reachable: boolean;
+    active: boolean;
+    status: string;
+  };
+
 
   capabilities?: Record<
     string,
@@ -37,9 +45,29 @@ export function DeviceCard({
   const hasBrightness =
     device.capabilities?.brightness?.writable;
 
-  const hasSpeedControls =
-    device.capabilities?.speed_up?.writable ||
-    device.capabilities?.speed_down?.writable;
+  const canIncreaseSpeed =
+  device.capabilities?.speed_up?.writable;
+
+const canDecreaseSpeed =
+  device.capabilities?.speed_down?.writable;
+
+const hasSpeedControls =
+  canIncreaseSpeed || canDecreaseSpeed;
+
+const canToggleSwing =
+  device.capabilities?.swing_toggle?.writable;
+
+const canCycleMode =
+  device.capabilities?.mode_next?.writable;
+
+    const hasWritableCapabilities =
+  !!device.capabilities &&
+  Object.values(device.capabilities).some(
+    (cap) => cap.writable
+  );
+
+    const isActive =
+  device.uiState.active;
 
   const Icon = hasBrightness
     ? Lightbulb
@@ -53,7 +81,7 @@ export function DeviceCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-2xl border p-5 transition-shadow ${
-        device.isOn
+        isActive
           ? "bg-white border-teal-200 shadow-lg shadow-teal-500/10"
           : "bg-gray-50 border-gray-200"
       }`}
@@ -63,17 +91,17 @@ export function DeviceCard({
         <div className="flex items-center gap-3">
           <div
             className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-              device.isOn
+              isActive
                 ? "bg-teal-100 text-teal-600"
                 : "bg-gray-200 text-gray-400"
             }`}
           >
             <Icon
               className={`h-5 w-5 ${
-                hasSpeedControls && device.isOn ? "animate-spin" : ""
+                hasSpeedControls && isActive ? "animate-spin" : ""
               }`}
               style={
-                hasSpeedControls && device.isOn
+                hasSpeedControls && isActive
                   ? {
                       animationDuration: `${4 - (device.speed || 1)}s`,
                     }
@@ -91,20 +119,22 @@ export function DeviceCard({
         </div>
 
         {/* Power button */}
+        {hasWritableCapabilities && (
         <button
           onClick={() => onToggle(device.id)}
           className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-            device.isOn
+            isActive
               ? "bg-teal-500 text-white hover:bg-teal-600"
               : "bg-gray-200 text-gray-400 hover:bg-gray-300"
           }`}
         >
           <Power className="h-4 w-4" />
         </button>
+        )}
       </div>
 
       {/* Controls */}
-      {device.isOn && (
+      {isActive && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
@@ -146,29 +176,33 @@ export function DeviceCard({
     </div>
 
     <div className="flex gap-2">
-      <button
-        onClick={() =>
-          onSpeedChange(
-            device.id,
-            Math.max(1, (device.speed ?? 4) - 1)
-          )
-        }
-        className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
-      >
-        -
-      </button>
+      {canDecreaseSpeed && (
+        <button
+          onClick={() =>
+            onSpeedChange(
+              device.id,
+              Math.max(1, (device.speed ?? 4) - 1)
+            )
+          }
+          className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+        >
+          -
+        </button>
+      )}
 
-      <button
-        onClick={() =>
-          onSpeedChange(
-            device.id,
-            Math.min(8, (device.speed ?? 4) + 1)
-          )
-        }
-        className="flex-1 rounded-lg py-2 text-sm font-medium bg-teal-500 text-white hover:bg-teal-600"
-      >
-        +
-      </button>
+      {canIncreaseSpeed && (
+        <button
+          onClick={() =>
+            onSpeedChange(
+              device.id,
+              Math.min(8, (device.speed ?? 4) + 1)
+            )
+          }
+          className="flex-1 rounded-lg py-2 text-sm font-medium bg-teal-500 text-white hover:bg-teal-600"
+        >
+          +
+        </button>
+      )}
     </div>
   </div>
 )}
@@ -179,12 +213,12 @@ export function DeviceCard({
       <div className="flex items-center gap-1.5 mt-3">
         <div
           className={`h-1.5 w-1.5 rounded-full ${
-            device.isOn ? "bg-teal-500" : "bg-gray-400"
+            isActive ? "bg-teal-500" : "bg-gray-400"
           }`}
         />
 
         <span className="text-[11px] text-gray-500">
-          {device.isOn ? "Active" : "Off"}
+          {device.uiState.status}
         </span>
       </div>
     </motion.div>

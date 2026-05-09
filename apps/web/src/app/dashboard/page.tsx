@@ -10,15 +10,95 @@ import { useRouter } from "next/dist/client/components/navigation";
 
 
 const fallbackDevices: Device[] = [
-  { id: "1", name: "Ceiling Light", type: "light", room: "Living Room", isOn: true, brightness: 80 },
-  { id: "2", name: "Desk Lamp", type: "light", room: "Office", isOn: false, brightness: 50 },
-  { id: "3", name: "Floor Lamp", type: "light", room: "Bedroom", isOn: true, brightness: 30 },
-  { id: "4", name: "Ceiling Fan", type: "fan", room: "Living Room", isOn: true, speed: 2 },
-  { id: "5", name: "Fan", type: "fan", room: "Bedroom", isOn: false, speed: 1 },
-  { id: "6", name: "Vacuum Cleaner", type: "fan", room: "Living Room", isOn: false, speed: 1 },
+  {
+    id: "1", name: "Ceiling Light", type: "light", room: "Living Room", isOn: true, brightness: 80,
+    statusLabel: "",
+    uiState: {
+      reachable: false,
+      active: false,
+      status: ""
+    }
+  },
+  {
+    id: "2", name: "Desk Lamp", type: "light", room: "Office", isOn: false, brightness: 50,
+    statusLabel: "",
+    uiState: {
+      reachable: false,
+      active: false,
+      status: ""
+    }
+  },
+  {
+    id: "3", name: "Floor Lamp", type: "light", room: "Bedroom", isOn: true, brightness: 30,
+    statusLabel: "",
+    uiState: {
+      reachable: false,
+      active: false,
+      status: ""
+    }
+  },
+  {
+    id: "4", name: "Ceiling Fan", type: "fan", room: "Living Room", isOn: true, speed: 2,
+    statusLabel: "",
+    uiState: {
+      reachable: false,
+      active: false,
+      status: ""
+    }
+  },
+  {
+    id: "5", name: "Fan", type: "fan", room: "Bedroom", isOn: false, speed: 1,
+    statusLabel: "",
+    uiState: {
+      reachable: false,
+      active: false,
+      status: ""
+    }
+  },
+  {
+    id: "6", name: "Vacuum Cleaner", type: "fan", room: "Living Room", isOn: false, speed: 1,
+    statusLabel: "",
+    uiState: {
+      reachable: false,
+      active: false,
+      status: ""
+    }
+  },
 ];
 
+function isDeviceActive(d: ServerDevice) {
+  if (!d.capabilities) return false;
+
+  return Object.keys(d.capabilities).some((key) => {
+    return d.state?.[key as keyof typeof d.state] === true;
+  });
+}
+
+function getUiState(d: ServerDevice) {
+  const reachable =
+    !!d.status?.connected &&
+    !!d.is_online;
+
+  const active =
+    reachable &&
+    isDeviceActive(d);
+
+  let status = "Offline";
+
+  if (reachable) {
+    status = active ? "Active" : "Idle";
+  }
+
+  return {
+    reachable,
+    active,
+    status,
+  };
+}
+
+
 function mapDevice(d: ServerDevice): Device {
+  
   return {
     id: d.device_uuid,
 
@@ -32,18 +112,21 @@ function mapDevice(d: ServerDevice): Device {
 
     type: d.type,
 
-    isOn:
-      d.state?.power ??
-      d.state?.cleaning ??
-      d.state?.open ??
-      false,
+    uiState: getUiState(d),
+
+    isOn: isDeviceActive(d),
 
     brightness: d.state?.brightness,
 
     speed: d.state?.speed,
 
+    statusLabel: "",
+
     capabilities: d.capabilities,
+
+    
   };
+  
 }
 
 
@@ -102,7 +185,8 @@ useEffect(() => {
       ? devices
       : devices.filter((d) => d.room === activeRoom);
 
-  const activeCount = devices.filter((d) => d.isOn).length;
+  const activeCount = devices.filter((d) => d.uiState.active).length;
+  
 
   const toggle = async (id: string) => {
     const currentDevice = devices.find((d) => d.id === id);
@@ -115,13 +199,30 @@ useEffect(() => {
     );
 
     if (!usingFallback) {
-      try {
-        await sendDeviceCommand(id, { power: newPower });
-        await loadDevices();
-      } catch (err) {
-        console.error(err);
-      }
-    }
+  try {
+    const capabilityPriority = [
+  "power",
+  "open",
+  "cleaning",
+];
+
+const capabilityKey =
+  capabilityPriority.find(
+    (key) =>
+      currentDevice.capabilities?.[key]?.writable
+  );
+
+    if (!capabilityKey) return;
+
+    await sendDeviceCommand(id, {
+      [capabilityKey]: newPower,
+    });
+
+    await loadDevices();
+  } catch (err) {
+    console.error(err);
+  }
+}
   };
 
   const setBrightness = async (id: string, value: number) => {
