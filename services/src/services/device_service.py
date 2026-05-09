@@ -9,28 +9,76 @@ from services.src.bridge.bridge import dispatch_command
 OFFLINE_THRESHOLD_SECONDS = 30
 
 
-def is_device_online(device: dict) -> bool:
-    """Check whether a device is considered online based on its last_seen timestamp.
-
-    A device is considered online if its last_seen timestamp is within
-    OFFLINE_THRESHOLD_SECONDS of the current UTC time.
-
-    Args:
-        device (dict): A device dictionary containing at least a 'last_seen' ISO 8601 timestamp.
-
-    Returns:
-        bool: True if the device is online, False if it is offline or has no last_seen value.
-    """
+def has_recent_last_seen(device: dict) -> bool:
+    """Check whether a device has communicated recently enough to be online."""
     last_seen = device.get("last_seen")
 
     if not last_seen:
         return False
 
-    last_seen_dt = datetime.fromisoformat(last_seen)
-    now = datetime.now(timezone.utc)
+    try:
+        last_seen_dt = datetime.fromisoformat(last_seen)
+    except ValueError:
+        return False
 
+    if last_seen_dt.tzinfo is None:
+        last_seen_dt = last_seen_dt.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
     diff = (now - last_seen_dt).total_seconds()
     return diff <= OFFLINE_THRESHOLD_SECONDS
+
+
+def is_device_online(
+    device: dict,
+    devices_by_uuid: Dict[str, dict] | None = None,
+    visited: set[str] | None = None,
+) -> bool:
+    """Check whether a device is reachable directly or through its controller.
+
+    Direct devices are online when their own last_seen timestamp is recent.
+    Devices with transport.mode="via_controller" are also treated as online
+    when their controller_uuid points to an online controller.
+    """
+    if has_recent_last_seen(device):
+        return True
+
+    transport = device.get("transport", {})
+    if transport.get("mode") != "via_controller":
+        return False
+
+    controller_uuid = transport.get("controller_uuid")
+    if not controller_uuid or not devices_by_uuid:
+        return False
+
+    visited = visited or set()
+    device_uuid = device.get("device_uuid")
+    if device_uuid:
+        visited.add(device_uuid)
+
+    if controller_uuid in visited:
+        return False
+
+    controller = devices_by_uuid.get(controller_uuid)
+    if not controller:
+        return False
+
+    return is_device_online(controller, devices_by_uuid, visited)
+
+
+def apply_online_status(
+    device: dict,
+    devices_by_uuid: Dict[str, dict] | None = None,
+) -> dict:
+    """Add an is_online field to a device dictionary based on its last_seen and controller status."""
+    online = is_device_online(device, devices_by_uuid)
+    device["is_online"] = online
+
+    status = device.get("status", {}).copy()
+    status["connected"] = online
+    device["status"] = status
+
+    return device
 
 
 def connect_device(payload: ConnectDeviceBody) -> Dict[str, Any]:
@@ -94,12 +142,17 @@ def list_devices(device_type: str | None = None):
         list[dict]: A list of device dictionaries, each including an is_online field.
     """
     devices = device_store.list_devices()
+    devices_by_uuid = {
+        device["device_uuid"]: device
+        for device in devices
+        if device.get("device_uuid")
+    }
 
     if device_type:
         devices = [d for d in devices if d.get("device_type") == device_type]
 
     for device in devices:
-        device["is_online"] = is_device_online(device)
+        apply_online_status(device, devices_by_uuid)
 
     return devices
 
@@ -124,7 +177,15 @@ def get_device(device_uuid: str) -> Dict[str, Any]:
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    device["is_online"] = is_device_online(device)
+    devices = device_store.list_devices()
+    devices_by_uuid = {
+        item["device_uuid"]: item
+        for item in devices
+        if item.get("device_uuid")
+    }
+    devices_by_uuid[device_uuid] = device
+
+    apply_online_status(device, devices_by_uuid)
 
     return device
 
