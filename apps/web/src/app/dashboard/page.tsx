@@ -199,17 +199,17 @@ useEffect(() => {
     );
 
     if (!usingFallback) {
-  try {
-    const capabilityPriority = [
-  "power",
-  "open",
-  "cleaning",
-];
+        try {
+          const capabilityPriority = [
+        "power",
+        "open",
+        "cleaning",
+      ];
 
-const capabilityKey =
-  capabilityPriority.find(
-    (key) =>
-      currentDevice.capabilities?.[key]?.writable
+    const capabilityKey =
+      capabilityPriority.find(
+        (key) =>
+          currentDevice.capabilities?.[key]?.writable
   );
 
     if (!capabilityKey) return;
@@ -277,6 +277,23 @@ const capabilityKey =
       console.error(err);
     }
   }
+  };
+
+  const triggerAction = async (
+  id: string,
+  action: string
+) => {
+  if (usingFallback) return;
+
+  try {
+    await sendDeviceCommand(id, {
+      [action]: true,
+    });
+
+    await loadDevices();
+  } catch (err) {
+    console.error(err);
+  }
 };
 
   return (
@@ -336,6 +353,7 @@ const capabilityKey =
                     onToggle={toggle}
                     onBrightnessChange={setBrightness}
                     onSpeedChange={setSpeed}
+                    onAction={triggerAction}
                   />
                 ))}
             </div>

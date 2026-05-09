@@ -34,6 +34,13 @@ interface DeviceCardProps {
   onToggle: (id: string) => void;
   onBrightnessChange: (id: string, value: number) => void;
   onSpeedChange: (id: string, value: number) => void;
+  
+
+  onAction: (
+  id: string,
+  action: string
+) => void;
+
 }
 
 export function DeviceCard({
@@ -41,6 +48,7 @@ export function DeviceCard({
   onToggle,
   onBrightnessChange,
   onSpeedChange,
+  onAction
 }: DeviceCardProps) {
   const hasBrightness =
     device.capabilities?.brightness?.writable;
@@ -166,25 +174,25 @@ const canCycleMode =
           )}
 
           {hasSpeedControls && (
-  <div>
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-xs text-gray-500">Fan Speed</p>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-500">Fan Speed</p>
 
-      <span className="text-xs font-medium text-gray-700">
-        {device.speed ?? 4}
-      </span>
-    </div>
+                  <span className="text-xs font-medium text-gray-700">
+                    {device.speed ?? 4}
+                  </span>
+                </div>
 
-    <div className="flex gap-2">
-      {canDecreaseSpeed && (
-        <button
-          onClick={() =>
-            onSpeedChange(
-              device.id,
-              Math.max(1, (device.speed ?? 4) - 1)
-            )
-          }
-          className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                <div className="flex gap-2">
+                  {canDecreaseSpeed && (
+                    <button
+                      onClick={() =>
+                        onSpeedChange(
+                          device.id,
+                          Math.max(1, (device.speed ?? 4) - 1)
+                        )
+                      }
+className="flex-1 rounded-lg py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
         >
           -
         </button>
@@ -206,6 +214,30 @@ const canCycleMode =
     </div>
   </div>
 )}
+<div className="flex flex-wrap gap-2 mt-4">
+  {canToggleSwing && (
+    <button
+    onClick={() =>
+    onAction(device.id, "swing_toggle")
+  }
+
+      className="rounded-lg px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+    >
+      Swing
+    </button>
+  )}
+
+  {canCycleMode && (
+    <button
+    onClick={() =>
+    onAction(device.id, "mode_next")
+  }
+      className="rounded-lg px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+    >
+      Mode
+    </button>
+  )}
+</div>
         </motion.div>
       )}
 
