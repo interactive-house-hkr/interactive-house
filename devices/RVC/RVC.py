@@ -117,7 +117,6 @@ class RVC:
         for step in path[1:]:
             self.position = step
             self.cleaned_cells.add(step)
-            self.visualize()
             time.sleep(0.12)
 
         self.status = "idle"
