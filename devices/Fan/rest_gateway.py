@@ -1,6 +1,6 @@
 import time
 import requests
-from fan_controller import FanController
+from Fan.fan_controller import FanController
 
 DEVICE_UUID = "FAN001"
 

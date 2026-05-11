@@ -1,13 +1,21 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 import time
 from RVC import RVC
 from RVC_Rest import RVCRestAdapter
 import signal
 import threading
-from devices.Fan.fan_controller import FanController
-from devices.Fan.rest_gateway import FanRestAdapter
+from Fan.fan_controller import FanController
+from Fan.rest_gateway import FanRestAdapter
+
+from small_mock import MockFanController
 
 stop_event = threading.Event()
 
+URL = "https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/device-gateway"
+TEST_URL = "http://localhost:8000/api/v1/device-gateway"
 
 def heartbeat_loop(rest_adapter):
     while not stop_event.is_set():
@@ -39,17 +47,20 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
 
+    print("Starting devices...")
+
     rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)#
+
     rvc.rest_adapter = RVCRestAdapter(
         rvc, 
-        base_url="https://knolly-svetlana-beribboned.ngrok-free.dev/api/v1/device-gateway"
+        base_url=TEST_URL
     )
     rvc.rest_adapter.connect()
 
-    fan = FanController()
+    fan = MockFanController() # Replace with FanController() for real fan
     fan_adapter = FanRestAdapter(
         fan,
-        base_url="http://localhost:8000/api/v1/device-gateway"
+        base_url=TEST_URL
     )
     fan_adapter.connect_device()
 
@@ -78,8 +89,9 @@ if __name__ == "__main__":
 
     try:
         while any(t.is_alive() for t in threads):
+            rvc.visualize()
             for t in threads:
-                t.join(timeout=0.5)
+                t.join(timeout=0.1)
     except KeyboardInterrupt:
         handle_shutdown(None, None)
         for t in threads:

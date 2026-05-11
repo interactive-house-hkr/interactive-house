@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-command = None
+command_queues = {}
 device_states = {}
 connected_devices = {}
 
@@ -33,20 +33,8 @@ def heartbeat(device_uuid):
 
 @app.route("/api/v1/device-gateway/<device_uuid>/commands/next", methods=["GET"])
 def next_command(device_uuid):
-    global command
-
-    if command:
-        cmd = command
-        command = None
-        return jsonify({
-            "device_uuid": device_uuid,
-            "command": cmd
-        })
-
-    return jsonify({
-        "device_uuid": device_uuid,
-        "command": None
-    })
+    cmd = command_queues.pop(device_uuid, None)
+    return jsonify({"device_uuid": device_uuid, "command": cmd})
 
 
 @app.route("/api/v1/device-gateway/<device_uuid>/command-ack", methods=["POST"])
@@ -71,16 +59,11 @@ def ack(device_uuid):
 
 @app.route("/send-command", methods=["POST"])
 def send_command():
-    global command
-    command = request.json
-
-    print("Command queued:")
-    print(command)
-
-    return jsonify({
-        "status": "queued",
-        "command": command
-    })
+    data = request.json
+    device_uuid = data.get("device_uuid")
+    command_queues[device_uuid] = data
+    print("Command queued:", data)
+    return jsonify({"status": "queued", "command": data})
 
 
 @app.route("/state", methods=["GET"])
