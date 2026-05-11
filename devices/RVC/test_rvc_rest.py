@@ -129,7 +129,7 @@ class TestRVCRestAdapter(unittest.TestCase):
         self.adapter.session.post.return_value.status_code = 200
         self.adapter.session.post.return_value.json.return_value = {"status": "ok"}
 
-        status_code, response = self.adapter.send_heartbeat()
+        status_code, response = self.adapter.heartbeat()
 
         self.assertEqual(status_code, 200)
         self.assertEqual(response, {"status": "ok"})
@@ -143,7 +143,7 @@ class TestRVCRestAdapter(unittest.TestCase):
             "command": {"type": "COMMAND", "device_uuid": "RVC001", "state": {"cleaning": True}}
         }
 
-        command = self.adapter.poll_next_command()
+        command = self.adapter.get_command()
 
         self.assertEqual(command, {"type": "COMMAND", "device_uuid": "RVC001", "state": {"cleaning": True}})
 
@@ -156,7 +156,7 @@ class TestRVCRestAdapter(unittest.TestCase):
             "command": None
         }
 
-        command = self.adapter.poll_next_command()
+        command = self.adapter.get_command()
 
         self.assertIsNone(command)
 
@@ -233,7 +233,7 @@ class TestRVCRestAdapter(unittest.TestCase):
         self.adapter.session.post.return_value.status_code = 200
         self.adapter.session.post.return_value.json.return_value = {"status": "ok"}
 
-        status_code, response = self.adapter.send_command_ack()
+        status_code, response = self.adapter.ack_command()
 
         self.assertEqual(status_code, 200)
         self.assertEqual(response, {"status": "ok"})

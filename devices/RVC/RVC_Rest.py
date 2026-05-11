@@ -53,7 +53,7 @@ class RVCRestAdapter:
             return None, None
         
 
-    def send_heartbeat(self):
+    def heartbeat(self):
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/heartbeat"
             response = self.session.post(url, timeout=5)
@@ -80,7 +80,7 @@ class RVCRestAdapter:
             return self.protocol.build_command_ack(status="error", error=str(e))
 
 
-    def send_command_ack(self, payload: dict):
+    def ack_command(self, payload: dict):
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/command-ack"
             response = self.session.post(url, json=payload, timeout=5)
@@ -90,7 +90,7 @@ class RVCRestAdapter:
             print(f"Error sending command ack: {e}")
             return None, None
         
-    def poll_next_command(self):
+    def get_command(self):
         try:
             url = f"{self.base_url}/{self.rvc.device_id}/commands/next"
             response = self.session.get(url, timeout=5)
