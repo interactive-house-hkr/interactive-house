@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     print("Starting devices...")
 
-    rvc = RVC(device_id="RVC001", name="RoboVac", grid_size=10)#
+    rvc = RVC(device_id="RVC001", name="RoboVac")
 
     rvc.rest_adapter = RVCRestAdapter(
         rvc, 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         while any(t.is_alive() for t in threads):
             rvc.visualize()
             for t in threads:
-                t.join(timeout=0.1)
+                t.join(timeout=0.016)
     except KeyboardInterrupt:
         handle_shutdown(None, None)
         for t in threads:
