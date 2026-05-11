@@ -69,6 +69,7 @@ class RVC:
         if self.status == "idle":
             self.status = "cleaning"
             self.low_battery_triggered = False
+            self.cleaned_cells = {self.position}
             print(f"{self.name} has started cleaning.")
         elif self.status == "paused":
             self.resume()
