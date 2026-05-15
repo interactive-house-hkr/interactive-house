@@ -69,6 +69,7 @@ class RVC:
         if self.status == "idle":
             self.status = "cleaning"
             self.low_battery_triggered = False
+            self.cleaned_cells = {self.position}
             print(f"{self.name} has started cleaning.")
         elif self.status == "paused":
             self.resume()
@@ -116,7 +117,6 @@ class RVC:
         for step in path[1:]:
             self.position = step
             self.cleaned_cells.add(step)
-            self.visualize()
             time.sleep(0.12)
 
         self.status = "idle"
