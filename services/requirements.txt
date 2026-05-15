@@ -9,4 +9,5 @@ pyserial>=3.5
 PyJWT>=2.8
 bcrypt>=4.1
 email-validator>=2.2
+httpx>=0.28
 pytest>=8.4,<10
