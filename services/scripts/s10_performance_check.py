@@ -1,21 +1,29 @@
+import os
 import statistics
+import sys
 import time
+import warnings
+from pathlib import Path
 
 import httpx
-import pytest
-
-from services.src.utils.security import create_access_token
+from jwt.warnings import InsecureKeyLengthWarning
 
 
-# This test requires the backend server to be running to replicate the full environment.
-BASE_URL = "https://knolly-svetlana-beribboned.ngrok-free.dev"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
+from services.src.utils.security import create_access_token  # noqa: E402
+
+
+# This check requires the backend server to be running to replicate the full environment.
+BASE_URL = os.getenv("S10_BASE_URL", "https://knolly-svetlana-beribboned.ngrok-free.dev")
 DEVICE_UUID = "S10_PERFORMANCE_DEVICE"
 TARGET_MS = 500
 ROUNDS = 100
 REQUEST_TIMEOUT_SECONDS = 10
 
 
-def skip_if_backend_is_unavailable(client):
+def warn_if_backend_is_unavailable(client):
     try:
         response = client.get(
             "/",
@@ -23,16 +31,20 @@ def skip_if_backend_is_unavailable(client):
         )
         response.raise_for_status()
     except httpx.RequestError as exc:
-        pytest.skip(
-            f"S10 live performance test skipped because the backend server is not reachable at "
-            f"{BASE_URL}. Start the backend server or ngrok tunnel before running this test. "
-            f"Error: {exc}"
+        print(
+            "WARNING: S10 live performance check was not run because the backend "
+            f"server is not reachable at {BASE_URL}. Start the backend server or "
+            f"ngrok tunnel before running this check. Error: {exc}"
         )
+        return False
     except httpx.HTTPStatusError as exc:
-        pytest.skip(
-            f"S10 live performance test skipped because the backend health check returned "
-            f"HTTP {exc.response.status_code}: {exc.response.text}"
+        print(
+            "WARNING: S10 live performance check was not run because the backend "
+            f"health check returned HTTP {exc.response.status_code}: {exc.response.text}"
         )
+        return False
+
+    return True
 
 
 def send_request(client, method, path, body=None, token=None):
@@ -55,15 +67,14 @@ def send_request(client, method, path, body=None, token=None):
         )
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        pytest.fail(
+        raise RuntimeError(
             f"{method} {path} returned HTTP {exc.response.status_code}: {exc.response.text}"
-        )
+        ) from exc
     except httpx.RequestError as exc:
-        pytest.skip(
-            f"S10 live performance test skipped because the backend server became unreachable at "
-            f"{BASE_URL}. Start the backend server or ngrok tunnel before running this test. "
-            f"Error: {exc}"
-        )
+        raise RuntimeError(
+            f"Backend server became unreachable at {BASE_URL}. Start the backend "
+            f"server or ngrok tunnel before running this check. Error: {exc}"
+        ) from exc
 
     return (time.perf_counter() - start) * 1000
 
@@ -97,14 +108,19 @@ def delete_seeded_device(client, token):
     # Deleting the seeded device also deletes its pending command queue in device_store.
     try:
         send_request(client, "DELETE", f"/api/v1/devices/{DEVICE_UUID}", token=token)
-    except pytest.fail.Exception:
+    except RuntimeError:
         # Cleanup should not hide the original performance or connectivity failure.
         pass
 
 
-@pytest.mark.filterwarnings("ignore:.*HMAC key is.*:jwt.warnings.InsecureKeyLengthWarning")
-def test_s10_live_backend_responses_under_500ms_for_95_percent():
-    token = create_access_token("s10-performance-user")
+def run_s10_check():
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=".*HMAC key is.*",
+            category=InsecureKeyLengthWarning,
+        )
+        token = create_access_token("s10-performance-user")
 
     # Representative backend endpoints from the S10 scope.
     requests_to_measure = [
@@ -114,7 +130,9 @@ def test_s10_live_backend_responses_under_500ms_for_95_percent():
     ]
 
     with httpx.Client(base_url=BASE_URL, timeout=REQUEST_TIMEOUT_SECONDS) as client:
-        skip_if_backend_is_unavailable(client)
+        if not warn_if_backend_is_unavailable(client):
+            return 0
+
         seed_rest_device(client)
 
         try:
@@ -133,14 +151,27 @@ def test_s10_live_backend_responses_under_500ms_for_95_percent():
             p95_index = int(len(timings_ms) * 0.95) - 1
             p95_ms = timings_ms[p95_index]
 
-            # Keep useful performance numbers in the assertion message so failed CI/test
-            # output can be referenced when evaluating S10.
-            assert pass_ratio >= 0.95, (
-                f"Only {pass_ratio:.1%} of backend responses were below {TARGET_MS} ms. "
-                f"p50={statistics.median(timings_ms):.2f} ms, "
-                f"p95={p95_ms:.2f} ms, "
-                f"max={max(timings_ms):.2f} ms, "
-                f"requests={len(timings_ms)}"
-            )
+            print(f"S10 backend response-time check against {BASE_URL}")
+            print(f"Requests measured: {len(timings_ms)}")
+            print(f"Target: at least 95% below {TARGET_MS} ms")
+            print(f"Result: {pass_ratio:.1%} below {TARGET_MS} ms")
+            print(f"p50: {statistics.median(timings_ms):.2f} ms")
+            print(f"p95: {p95_ms:.2f} ms")
+            print(f"max: {max(timings_ms):.2f} ms")
+
+            if pass_ratio < 0.95:
+                print("FAIL: S10 target was not met.")
+                return 1
+
+            print("PASS: S10 target was met.")
+            return 0
         finally:
             delete_seeded_device(client, token)
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(run_s10_check())
+    except RuntimeError as exc:
+        print(f"FAIL: {exc}")
+        raise SystemExit(1)
