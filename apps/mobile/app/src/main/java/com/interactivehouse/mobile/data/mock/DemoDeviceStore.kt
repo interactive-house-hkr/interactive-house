@@ -45,8 +45,10 @@ object DemoDeviceStore {
                 )
             }
             val device = devices[index]
+            val caps = device.capabilitiesOrEmpty
+
             for ((key, raw) in patch) {
-                val spec = device.capabilities[key]
+                val spec = caps[key]
                     ?: return DeviceApi.StateCommandResponse(
                         status = "error",
                         error = "unknown_capability",
@@ -73,9 +75,9 @@ object DemoDeviceStore {
                     )
                 }
             }
-            val newState = LinkedHashMap<String, Any>(device.state)
+            val newState = LinkedHashMap<String, Any>(device.stateOrEmpty)
             for ((key, raw) in patch) {
-                val spec = device.capabilities.getValue(key)
+                val spec = caps.getValue(key)
                 newState[key] = coerceValue(raw, spec)!!
             }
             val updated = device.copy(state = newState)
@@ -118,7 +120,7 @@ object DemoDeviceStore {
 
     private fun Device.copyForMutation(): Device =
         copy(
-            capabilities = LinkedHashMap(capabilities),
-            state = LinkedHashMap(state)
+            capabilities = LinkedHashMap(capabilitiesOrEmpty),
+            state = LinkedHashMap(stateOrEmpty)
         )
 }

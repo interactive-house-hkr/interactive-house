@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 
 object NavRoutes {
     const val Auth = "auth"
+    const val Login = Auth
     const val DevicesGraph = "devices_graph"
     const val DeviceList = "device_list"
     const val DeviceDetail = "device_detail"
@@ -55,6 +56,7 @@ fun AppNavHost(
     NavHost(
         navController = navController,
         startDestination = NavRoutes.Auth,
+        //startDestination = NavRoutes.DevicesGraph,
         modifier = modifier
     ) {
         composable(NavRoutes.Auth) {
@@ -129,6 +131,12 @@ fun AppNavHost(
                     viewModel = vm,
                     onDeviceClick = { device ->
                         navController.navigate("${NavRoutes.DeviceDetail}/${device.deviceUuid}")
+                    },
+                    onLogout = {
+                        RetrofitClient.tokenManager.clearToken()
+                        navController.navigate(NavRoutes.Login) {
+                            popUpTo(NavRoutes.DevicesGraph) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -145,10 +153,6 @@ fun AppNavHost(
                 val vm: DeviceListViewModel = viewModel(graphEntry)
                 val uuid = entry.arguments?.getString("uuid").orEmpty()
 
-                LaunchedEffect(Unit) {
-                    vm.startPeriodicRefresh()
-                }
-
                 DeviceDetailScreen(
                     deviceUuid = uuid,
                     viewModel = vm,
@@ -158,4 +162,3 @@ fun AppNavHost(
         }
     }
 }
-

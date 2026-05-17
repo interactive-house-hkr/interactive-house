@@ -15,7 +15,6 @@ class DeviceRepository(
 
     /**
      * Fetches all devices from the API/server.
-     * Calls:
      * GET /api/v1/devices
      */
     suspend fun getDevices(): List<Device> {
@@ -39,9 +38,6 @@ class DeviceRepository(
     // send a command to a device
     /* @param uuid Device ID (e.g. "light-1")
      * @param state State payload for the command (partial state map)
-     *
-     * Calls:
-     * POST /api/v1/devices/{uuid}/commands
      */
     suspend fun sendCommand(
         uuid: String,

@@ -3,40 +3,55 @@ package com.interactivehouse.mobile.data.mock
 import com.interactivehouse.mobile.data.model.CapabilitySpec
 import com.interactivehouse.mobile.data.model.Device
 
-/**
- * Seed data matching the /api/v1 devices contract (capabilities + state).
- */
 object FakeDevices {
 
-    fun seedDevices(): List<Device> = listOf(demoLight(), demoFan())
+    fun seedDevices(): List<Device> = listOf(
+        demoLight("Kitchen Light", "Kitchen", "demo-light-2", true, power = true),
+        demoFan("Office Fan", "Office", "demo-fan-1", true, power = true),
+        demoLight("Hallway Light", "Hallway", "demo-light-3", true, power = false),
+        demoThermostat("Bedroom Thermostat", "Bedroom", "demo-therm-1", true)      // No power cap
+    )
 
-    private fun demoLight(): Device = Device(
-        deviceUuid = "demo-light-001",
-        name = "Living Room Lamp",
-        room = "Living Room",
+    private fun demoLight(name: String, room: String, uuid: String, isOnline: Boolean, power: Boolean): Device = Device(
+        deviceUuid = uuid,
+        name = name,
+        room = room,
         type = "light",
         capabilities = mapOf(
             "power" to CapabilitySpec(type = "boolean", writable = true),
             "brightness" to CapabilitySpec(type = "integer", writable = true, min = 0, max = 100)
         ),
         state = mapOf(
-            "power" to false,
-            "brightness" to 50
+            "power" to power,
+            "brightness" to 75
         )
     )
 
-    private fun demoFan(): Device = Device(
-        deviceUuid = "demo-fan-001",
-        name = "Bedroom Fan",
-        room = "Bedroom",
+    private fun demoThermostat(name: String, room: String, uuid: String, isOnline: Boolean): Device = Device(
+        deviceUuid = uuid,
+        name = name,
+        room = room,
+        type = "thermostat",
+        capabilities = mapOf(
+            "temperature" to CapabilitySpec(type = "integer", writable = true, min = 16, max = 30)
+        ),
+        state = mapOf(
+            "temperature" to 22
+        )
+    )
+
+    private fun demoFan(name: String, room: String, uuid: String, isOnline: Boolean, power: Boolean): Device = Device(
+        deviceUuid = uuid,
+        name = name,
+        room = room,
         type = "fan",
         capabilities = mapOf(
             "power" to CapabilitySpec(type = "boolean", writable = true),
             "speed" to CapabilitySpec(type = "integer", writable = true, min = 0, max = 3)
         ),
         state = mapOf(
-            "power" to true,
-            "speed" to 1
+            "power" to power,
+            "speed" to 0
         )
     )
 }

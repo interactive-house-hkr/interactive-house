@@ -12,7 +12,6 @@ import retrofit2.http.Path
  */
 interface DeviceApi {
     //Fetches all devices from the server.
-    // To return a list of devices
     @GET("devices")
     suspend fun getDevices(): List<Device>
 
@@ -22,15 +21,6 @@ interface DeviceApi {
         @Path("uuid") uuid: String // replaces {uuid} in the URL
     ): Device
 
-    /* Sends a command to a device.
-    //     * The body must follow this format:
-        {
-          "state": {
-          "power": true,
-          "brightness": 50
-           }
-        }
-    */
     @POST("devices/{uuid}/commands")
     suspend fun sendCommand(
         @Path("uuid") uuid: String,
@@ -48,13 +38,6 @@ interface DeviceApi {
         val state: Map<String, @JvmSuppressWildcards Any>
     )
 
-    /**
-     * Example success:
-     * { "status": "success", "state": { "power": true } }
-     *
-     * Example error:
-     * { "status": "error", "error": "invalid_state", "message": "one or more state values are invalid" }
-     */
     data class StateCommandResponse(
         val status: String,
         val state: Map<String, @JvmSuppressWildcards Any>? = null,
